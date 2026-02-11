@@ -1,0 +1,10 @@
+# Node / React Native
+node_modules/
+.expo/
+dist/
+
+# Python
+__pycache__/
+.venv/
+env/
+*.pyc
