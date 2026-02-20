@@ -1,10 +1,11 @@
 # Node / React Native
-node_modules/
-.expo/
-dist/
+mobile/node_modules/
+mobile/.expo/
 
 # Python
 __pycache__/
 .venv/
 env/
 *.pyc
+
+.env
