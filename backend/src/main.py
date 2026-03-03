@@ -37,7 +37,7 @@ def search_foods(q: str):
 
     body = {
         "query": q,
-        "pageSize": 5
+        "pageSize": 10
     }
     
     response = requests.post(url, params=params, json=body)
