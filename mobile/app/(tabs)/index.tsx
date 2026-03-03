@@ -1,98 +1,108 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState } from "react";
+import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator } from "react-native"
+import { searchFoods, FoodPreview, getFoodDetails } from "../../services/foodService";
+import { addToDayLog, getTodayKey } from "../../lib/storage";
+import { makeId, LogEntry } from "../../data/food";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function SearchScreen(){
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<FoodPreview[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export default function HomeScreen() {
+  async function onSearch(){
+    try{
+      setError(null);
+      setLoading(true);
+      const data = await searchFoods(query);
+      setResults(data);
+    } catch (e: any){
+      setError(e?.message ?? "Search failed");
+    } finally{
+      setLoading(false);
+    }
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={{flex: 1, backgroundColor: "#BFE9FF",padding: 16, gap: 12}}>
+      <Text style={{fontSize: 22, fontWeight: "700", color: "#fff"}}>Search</Text>
+
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search foods (ex: rice)"
+        placeholderTextColor={"#888"}
+        autoCapitalize="none"
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderRadius: 10,
+          color: "#000",
+          backgroundColor: "#fff"
+        }}
+        onSubmitEditing={onSearch}
+        returnKeyType="search"
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+        <Pressable
+          onPress={onSearch}
+          style={{
+            paddingVertical: 12,
+            borderRadius: 10,
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: "#ccc",
+          }}
+        >
+          <Text>Search</Text>
+        </Pressable>
+
+        {loading ? <ActivityIndicator /> : null}
+        {error ? <Text style={{color: "red"}}>{error}</Text>: null}
+
+        <FlatList
+          data={results}
+          keyExtractor={(item) => String(item.fdcId)}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={async () => {
+                try {
+                  setError(null);
+                  setLoading(true);
+
+                  const food = await getFoodDetails(item.fdcId);
+
+                  const entry: LogEntry = {
+                    id: makeId(),
+                    food,
+                    servings: 1,
+                    eatenAtISO: new Date().toISOString(),
+                  };
+
+                  await addToDayLog(getTodayKey(), entry);
+                } catch (e: any) {
+                  setError(e?.message ?? "Failed to log food");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              style={{
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: "#eee",
+              }}
+            >
+              <Text style={{ fontWeight: "600", color: "#000" }}>{item.description}</Text>
+              <Text style={{ color: "#444" }}>{item.brandOwner ?? item.dataType}</Text>
+              <Text style={{ color: "#007AFF", marginTop: 4 }}>Tap to log</Text>
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            !loading && query.trim().length > 0 ? <Text style={{opacity: 0.7}}>No results.</Text> : null
+          }
+        />
+    </View>
+  )
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
