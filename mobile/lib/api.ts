@@ -1,4 +1,4 @@
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "http:/192.168.4.37:8000";
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {

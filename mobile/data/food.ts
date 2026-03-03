@@ -12,13 +12,6 @@ export type Food = {
     externalId?: string;
 };
 
-export type LogEntry = {
-    foodid: string;
-    name: string;
-    servings: number;
-    timestamp: number;
-};
-
 export type MacroTotals = {
     calories: number;
     protein: number;
@@ -51,4 +44,17 @@ export function mapBackendFoodToAppFood(data: BackendFood): Food{
         source: "usda",
         externalId: data.fdcId.toString(),
     };
+}
+
+// Local Storage
+
+export type LogEntry = {
+    id: string;
+    food: Food;
+    servings: number;
+    eatenAtISO: string;
+};
+
+export function makeId(): string{
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
