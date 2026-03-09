@@ -3,6 +3,8 @@ import { View, Text, FlatList, Pressable } from "react-native";
 import { LogEntry } from "../../data/food";
 import { clearDayLog, getDayLog, getTodayKey } from "../../lib/storage";
 import { totalMacrosForEntries } from "../../utils/macros";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 export default function LogScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -13,9 +15,11 @@ export default function LogScreen() {
     setEntries(data);
   }
 
-  useEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     refresh();
-  }, []);
+  }, [])
+);
 
   const totals = totalMacrosForEntries(entries);
 

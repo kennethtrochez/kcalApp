@@ -1,4 +1,7 @@
-const BASE_URL = "http:/192.168.4.37:8000";
+import { Platform } from "react-native";
+
+const LAN_IP = "http://192.168.4.37:8000"; // put your PC IPv4 here
+const BASE_URL = Platform.OS === "web" ? "http://localhost:8000" : LAN_IP;
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
