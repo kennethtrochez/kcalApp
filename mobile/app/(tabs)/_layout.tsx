@@ -1,33 +1,129 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { View, Text } from "react-native";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function TabBarIcon({
+  focused,
+  color,
+  label,
+  activeIcon,
+  inactiveIcon,
+}: {
+  focused: boolean;
+  color: string;
+  label: string;
+  activeIcon: keyof typeof Ionicons.glyphMap;
+  inactiveIcon: keyof typeof Ionicons.glyphMap;
+}) {
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        minWidth: 64,
+        height: 58,
+        marginTop: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: focused ? "rgba(107, 92, 255, 0.18)" : "transparent",
+        }}
+      >
+        <Ionicons
+          name={focused ? activeIcon : inactiveIcon}
+          size={20}
+          color={color}
+        />
+      </View>
+
+      <Text
+        style={{
+          fontSize: 10,
+          color,
+          fontWeight: focused ? "700" : "500",
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: "#6b5cff",
+        tabBarInactiveTintColor: "#b0aaaa",
+        tabBarStyle: {
+          position: "absolute",
+          bottom: 18,
+          height: 80,
+          backgroundColor: "transparent",
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarItemStyle: {
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        tabBarLabel: () => null,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              focused={focused}
+              color={color}
+              label="Home"
+              activeIcon="home"
+              inactiveIcon="home-outline"
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="log"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Log",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              focused={focused}
+              color={color}
+              label="Log"
+              activeIcon="list"
+              inactiveIcon="list-outline"
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Calendar",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              focused={focused}
+              color={color}
+              label="Calendar"
+              activeIcon="calendar"
+              inactiveIcon="calendar-outline"
+            />
+          ),
         }}
       />
     </Tabs>
