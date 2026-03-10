@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Image } from "react-native";
+import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Image, Dimensions } from "react-native";
 
 import { searchFoods, FoodPreview, getFoodDetails } from "../../services/foodService";
 import { addToDayLog, getTodayKey, getDayLog } from "../../lib/storage";
@@ -18,11 +18,19 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loggingFoodId, setLoggingFoodId] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const calorieGoal = 2000;
 
   const [fontsLoaded] = useFonts({
     MetalMania: require("../../assets/fonts/MetalMania-Regular.ttf"),
   });
+
+  function getDateKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -30,8 +38,8 @@ export default function SearchScreen() {
 
       (async () => {
         try {
-          const todays = await getDayLog(getTodayKey());
-          if (alive) setEntries(todays);
+          const selectedDayLog = await getDayLog(getDateKey(selectedDate));
+          if (alive) setEntries(selectedDayLog);
         } catch (e) {
           console.log("Failed to load today log", e);
           if (alive) setEntries([]);
@@ -41,7 +49,7 @@ export default function SearchScreen() {
       return () => {
         alive = false;
       };
-    }, [])
+    }, [selectedDate])
   );
 
   const totals = useMemo(() => totalMacrosForEntries(entries), [entries]);
@@ -51,10 +59,48 @@ export default function SearchScreen() {
     Math.min(1, calorieGoal > 0 ? totals.calories / calorieGoal : 0)
   );
 
+  const calendarDates = useMemo(() => {
+    const today = new Date();
+    const dates = [];
+
+    for (let i = -30; i <= 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+
+      const isToday =
+        date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear();
+
+      const isSelected =
+        date.getDate() === selectedDate.getDate() &&
+        date.getMonth() === selectedDate.getMonth() &&
+        date.getFullYear() === selectedDate.getFullYear();
+
+      dates.push({
+        key: date.toISOString(),
+        fullDate: date,
+        monthLabel: date.toLocaleDateString("en-US", { month: "long" }),
+        dayLabel: date.toLocaleDateString("en-US", { weekday: "short" }),
+        dateNumber: date.getDate(),
+        isToday,
+        isSelected,
+      });
+    }
+
+    return dates;
+  }, [selectedDate]);
+
   if (!fontsLoaded) {
     return null;
   }
-  
+
+  const screenWidth = Dimensions.get("window").width;
+  const horizontalPadding = 16 * 2;
+  const listPadding = 2 * 2;
+  const gapBetweenCards = 8;
+  const itemWidth = (screenWidth - horizontalPadding - listPadding - gapBetweenCards * 4) / 5;
+
   async function onSearch() {
     try {
       setError(null);
@@ -102,6 +148,8 @@ export default function SearchScreen() {
       alignItems: "center",
       gap: 10,
       marginTop: 8,
+      zIndex: 3,
+      elevation: 3,
     }}
   >
     <TextInput
@@ -124,6 +172,7 @@ export default function SearchScreen() {
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 4 },
         elevation: 4,
+        zIndex: 3,
       }}
       onSubmitEditing={onSearch}
       returnKeyType="search"
@@ -172,15 +221,89 @@ export default function SearchScreen() {
     >
     <Ionicons name="options-outline" size={20} color="#fff" />
     </Pressable>
+    
   </View>
+    <View
+      style={{
+        position: "relative",
+        zIndex: 2,
+        elevation: 2,
+      }}
+    >
+      <Text
+        style={{
+          color: "#fff",
+          fontSize: 16,
+          fontWeight: "700",
+          marginTop: 4,
+          marginBottom: 6,
+          paddingHorizontal: 2,
+        }}
+      >
+        {selectedDate.toLocaleDateString("en-US", { month: "long" })}
+      </Text>
 
-      {loading ? <ActivityIndicator /> : null}
+      <FlatList
+        data={calendarDates}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="normal"
+        disableIntervalMomentum
+        keyExtractor={(item) => item.key}
+        style={{
+          height: 90,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 2,
+          paddingBottom: 2,
+        }}
+        renderItem={({ item, index }) => (
+          <Pressable
+            onPress={() => setSelectedDate(item.fullDate)}
+            style={{
+              width: itemWidth,
+              height: 72,
+              marginRight: index === calendarDates.length - 1 ? 0 : 8,
+              borderRadius: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: item.isSelected ? "#6b5cff" : "#3a3535",
+              borderWidth: 1,
+              borderColor: item.isSelected ? "#8d84ff" : item.isToday ? "#6b5cff" : "#4a4545",
+            }}
+          >
+            <Text
+              style={{
+                color: item.isSelected ? "#fff" : "#aaa",
+                fontSize: 11,
+                fontWeight: "600",
+              }}
+            >
+              {item.dayLabel}
+            </Text>
+
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 18,
+                fontWeight: "700",
+                marginTop: 4,
+              }}
+            >
+              {item.dateNumber}
+            </Text>
+          </Pressable>
+        )}
+      />
+    </View>
+
+  {loading ? <ActivityIndicator /> : null}
 
       {error ? (
         <Text style={{ color: "red" }}>{error}</Text>
       ) : null}
 
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} pointerEvents="box-none">
       <View
         style={{
           flex: 1,
@@ -188,6 +311,9 @@ export default function SearchScreen() {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: 8,
+          marginTop: -200,
+          zIndex: 1,
+          elevation: 1,
         }}
       >
         <View
@@ -285,7 +411,7 @@ export default function SearchScreen() {
         <View
           style={{
             position: "absolute",
-            top: 10,
+            top: -125,
             left: 16,
             right: 16,
             maxHeight: 260,
@@ -298,7 +424,8 @@ export default function SearchScreen() {
             shadowOpacity: 0.3,
             shadowRadius: 10,
             shadowOffset: { width: 0, height: 6 },
-            elevation: 8,
+            elevation: 10,
+            zIndex: 4,
           }}
         >
           <FlatList
@@ -324,7 +451,7 @@ export default function SearchScreen() {
                       eatenAtISO: new Date().toISOString(),
                     };
 
-                    const updated = await addToDayLog(getTodayKey(), entry);
+                    const updated = await addToDayLog(getDateKey(selectedDate), entry);
                     setEntries(updated);
 
                     setResults([]);

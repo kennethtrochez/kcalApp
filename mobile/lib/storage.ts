@@ -32,3 +32,7 @@ export async function addToDayLog(dayKey: string, entry: LogEntry): Promise<LogE
 export async function clearDayLog(dayKey: string): Promise<void>{
     await AsyncStorage.removeItem(DAY_LOG_KEY(dayKey));
 }
+
+export async function getTodayLog(): Promise<LogEntry[]> {
+  return getDayLog(getTodayKey());
+}
