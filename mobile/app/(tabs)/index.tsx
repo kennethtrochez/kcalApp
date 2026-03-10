@@ -87,7 +87,7 @@ export default function SearchScreen() {
         isSelected,
       });
     }
-
+    
     return dates;
   }, [selectedDate]);
 
@@ -100,6 +100,13 @@ export default function SearchScreen() {
   const listPadding = 2 * 2;
   const gapBetweenCards = 8;
   const itemWidth = (screenWidth - horizontalPadding - listPadding - gapBetweenCards * 4) / 5;
+  
+  function formatLoggedTime(isoString: string) {
+    return new Date(isoString).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
 
   async function onSearch() {
     try {
@@ -125,22 +132,51 @@ export default function SearchScreen() {
         gap: 12
       }}
     >
-  <Text
+  <View
     style={{
-      fontFamily: "MetalMania",
-      color: "#fff",
-      fontSize: 32,
-      fontWeight: "700",
-      textAlign: "center",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginTop: 46,
-      letterSpacing: 2,
-      textShadowColor: "#8b5cf6",
-      textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 10
     }}
   >
-    kCalApp
-  </Text>
+
+    <Pressable
+      onPress={() => {
+        console.log("Open profile");
+      }}
+      style={{
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: "#3a3535",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#4a4545",
+      }}
+    >
+      <Ionicons name="person-outline" size={22} color="#fff" />
+    </Pressable>
+
+    <Text
+      style={{
+        fontFamily: "MetalMania",
+        color: "#fff",
+        fontSize: 32,
+        fontWeight: "700",
+        letterSpacing: 2,
+        textShadowColor: "#8b5cf6",
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10
+      }}
+    >
+      kCalApp
+    </Text>
+
+    <View style={{ width: 42 }} />
+
+  </View>
 
   <View
     style={{ // Search bar location and layout
@@ -306,12 +342,11 @@ export default function SearchScreen() {
     <View style={{ flex: 1 }} pointerEvents="box-none">
       <View
         style={{
-          flex: 1,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: 8,
-          marginTop: -200,
+          marginTop: -100,
           zIndex: 1,
           elevation: 1,
         }}
@@ -396,17 +431,95 @@ export default function SearchScreen() {
               borderRadius: 16,
               padding: 8,
               borderLeftWidth: 6,
-              borderLeftColor: "#FDE047",
+              borderLeftColor: "#16A34A",
             }}
           >
             <Text style={{ color: "#fff", fontWeight: "700" }}>Fat</Text>
-            <Text style={{ color: "#fde68a", fontSize: 20, marginTop: 4 }}>
+            <Text style={{ color: "#16A34A", fontSize: 20, marginTop: 4 }}>
               {Math.round(totals.fat)}g
             </Text>
           </View>
         </View>
       </View>
+            <View
+        style={{
+          marginTop: -150,
+          backgroundColor: "#3a3535",
+          borderRadius: 18,
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          maxHeight: 120,
+        }}
+      >
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 16,
+            fontWeight: "700",
+            marginBottom: 10,
+          }}
+        >
+          Food Log
+        </Text>
 
+        {entries.length === 0 ? (
+          <Text style={{ color: "#aaa" }}>No foods logged for this day.</Text>
+        ) : (
+          <FlatList
+            data={[...entries].sort(
+              (a, b) =>
+                new Date(b.eatenAtISO).getTime() - new Date(a.eatenAtISO).getTime()
+            )}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingVertical: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#4a4545",
+                }}
+              >
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.food.name}
+                  </Text>
+
+                  <Text
+                    style={{
+                      color: "#aaa",
+                      fontSize: 12,
+                      marginTop: 2,
+                    }}
+                  >
+                    {formatLoggedTime(item.eatenAtISO)}
+                  </Text>
+                </View>
+
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: "700",
+                  }}
+                >
+                  {Math.round(item.food.calories * item.servings)} cal
+                </Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
       {results.length > 0 && (
         <View
           style={{

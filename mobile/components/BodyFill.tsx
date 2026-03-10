@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Image, StyleSheet, ViewStyle, ImageStyle } from "react-native";
 import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
 
 type MacroColors = {
   protein: string;
@@ -26,8 +27,11 @@ type Props = {
 const DEFAULT_COLORS: MacroColors = {
   protein: "#7C3AED", // purple
   carbs: "#F59E0B",   // orange
-  fat: "#FDE047",     // yellow
+  fat: "#16A34A",     // green
 };
+
+const fillBottomOffset = 188;
+const usableFillHeight = 300;
 
 function clamp01(x: number) {
   if (Number.isNaN(x) || !Number.isFinite(x)) return 0;
@@ -50,7 +54,7 @@ export default function BodyFill({
   const { fillHeight, proteinH, carbsH, fatH } = useMemo(() => {
     const safeGoal = calorieGoal > 0 ? calorieGoal : 1;
     const progress = clamp01(caloriesConsumed / safeGoal);
-    const fh = height * progress;
+    const fh = usableFillHeight * progress;
 
     const pCals = Math.max(0, proteinG) * 4;
     const cCals = Math.max(0, carbsG) * 4;
@@ -69,6 +73,22 @@ export default function BodyFill({
     };
   }, [caloriesConsumed, calorieGoal, proteinG, carbsG, fatG, height]);
 
+const gradientLocations = useMemo(
+  (): [number, number, number] => {
+    if (fillHeight <= 0) return [0, 0.5, 1];
+
+    const fatRatio = fatH / fillHeight;
+    const carbRatio = carbsH / fillHeight;
+
+    return [
+      0,
+      fatRatio,
+      Math.min(1, fatRatio + carbRatio),
+    ];
+  },
+  [fillHeight, fatH, carbsH]
+);
+
   return (
     <View style={[{ width, height }, style]}>
       <MaskedView
@@ -85,15 +105,15 @@ export default function BodyFill({
           />
         }
       >
-
-        {/* Filled region anchored at bottom, clipped to fillHeight */}
         <View style={[StyleSheet.absoluteFillObject, { width, height }]}>
-          <View style={[styles.fillContainer, { width, height: fillHeight }]}>
-            <View style={styles.stack}>
-              <View style={{ height: fatH, backgroundColor: c.fat, width: "100%" }} />
-              <View style={{ height: carbsH, backgroundColor: c.carbs, width: "100%" }} />
-              <View style={{ height: proteinH, backgroundColor: c.protein, width: "100%" }} />
-            </View>
+          <View style={[styles.fillContainer, { width, height: fillHeight, bottom: fillBottomOffset,}]}>
+            <LinearGradient
+              colors={[c.fat, c.carbs, c.protein]}
+              locations={gradientLocations}
+              start={{ x: 0, y: 1 }}
+              end={{ x: 0, y: 0 }}
+              style={{ width: "100%", height: "100%" }}
+            />
           </View>
         </View>
       </MaskedView>
@@ -118,12 +138,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
     overflow: "hidden",
-  },
-  stack: {
-    flex: 1,
-    width: "100%",
-    flexDirection: "column-reverse",
   },
 });
