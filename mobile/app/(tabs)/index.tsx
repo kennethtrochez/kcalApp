@@ -10,6 +10,13 @@ import BodyFill from "../../components/BodyFill";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 
+function formatLoggedTime(isoString: string) {
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function SearchScreen() {
 
   const [query, setQuery] = useState("");
@@ -53,6 +60,24 @@ export default function SearchScreen() {
   );
 
   const totals = useMemo(() => totalMacrosForEntries(entries), [entries]);
+
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort(
+      (a, b) =>
+        new Date(a.eatenAtISO).getTime() - new Date(b.eatenAtISO).getTime()
+    );
+  }, [entries]);
+
+  const foodLogColumns = useMemo(() => {
+    const chunkSize = 3;
+    const columns: LogEntry[][] = [];
+
+    for (let i = 0; i < sortedEntries.length; i += chunkSize) {
+      columns.push(sortedEntries.slice(i, i + chunkSize));
+    }
+
+    return columns;
+  }, [sortedEntries]);
 
   const progress = Math.max(
     0,
@@ -100,13 +125,6 @@ export default function SearchScreen() {
   const listPadding = 2 * 2;
   const gapBetweenCards = 8;
   const itemWidth = (screenWidth - horizontalPadding - listPadding - gapBetweenCards * 4) / 5;
-  
-  function formatLoggedTime(isoString: string) {
-    return new Date(isoString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
 
   async function onSearch() {
     try {
@@ -441,85 +459,69 @@ export default function SearchScreen() {
           </View>
         </View>
       </View>
-            <View
-        style={{
-          marginTop: -150,
-          backgroundColor: "#3a3535",
-          borderRadius: 18,
-          paddingVertical: 6,
-          paddingHorizontal: 10,
-          maxHeight: 120,
-        }}
-      >
-        <Text
+        <View
           style={{
-            color: "#fff",
-            fontSize: 16,
-            fontWeight: "700",
-            marginBottom: 10,
+            marginTop: -150,
+            backgroundColor: "#3a3535",
+            borderRadius: 18,
+            paddingVertical: 8,
+            paddingHorizontal: 10,
           }}
         >
-          Food Log
-        </Text>
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 16,
+              fontWeight: "700",
+              marginBottom: 6,
+            }}
+          >
+            Food Log
+          </Text>
 
-        {entries.length === 0 ? (
-          <Text style={{ color: "#aaa" }}>No foods logged for this day.</Text>
-        ) : (
-          <FlatList
-            data={[...entries].sort(
-              (a, b) =>
-                new Date(b.eatenAtISO).getTime() - new Date(a.eatenAtISO).getTime()
-            )}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingVertical: 10,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#4a4545",
-                }}
-              >
-                <View style={{ flex: 1, paddingRight: 10 }}>
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontSize: 14,
-                      fontWeight: "600",
-                    }}
-                    numberOfLines={1}
-                  >
-                    {item.food.name}
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#aaa",
-                      fontSize: 12,
-                      marginTop: 2,
-                    }}
-                  >
-                    {formatLoggedTime(item.eatenAtISO)}
-                  </Text>
-                </View>
-
-                <Text
+          {entries.length === 0 ? (
+            <Text style={{ color: "#aaa", fontSize: 13 }}>
+              No foods logged.
+            </Text>
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 16,
+              }}
+            >
+              {foodLogColumns.map((column, columnIndex) => (
+                <View
+                  key={`column-${columnIndex}`}
                   style={{
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: "700",
+                    flex: 1,
+                    minWidth: 0,
                   }}
                 >
-                  {Math.round(item.food.calories * item.servings)} cal
-                </Text>
-              </View>
-            )}
-          />
-        )}
-      </View>
+                  {column.map((item) => {
+                    console.log("food item", item.food);
+                    return (
+                      <Text
+                        key={item.id}
+                        numberOfLines={1}
+                        style={{
+                          color: "#fff",
+                          fontSize: 13,
+                          marginBottom: 6,
+                        }}
+                      >
+                        {formatLoggedTime(item.eatenAtISO)}:{" "}
+                        {item.food.name}{" "}
+                        {Math.round(item.food.calories * item.servings)}kcal
+                      </Text>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
       {results.length > 0 && (
         <View
           style={{

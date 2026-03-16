@@ -30,5 +30,6 @@ type BackendFood = {
 
 export async function getFoodDetails(fdcId: number): Promise<Food>{
     const data = await apiGet<BackendFood>(`/foods/usda/${fdcId}`);
+    
     return mapBackendFoodToAppFood(data);
 }

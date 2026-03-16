@@ -1,38 +1,205 @@
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, FlatList, Pressable } from "react-native";
 import { LogEntry } from "../../data/food";
 import { clearDayLog, getDayLog, getTodayKey } from "../../lib/storage";
 import { totalMacrosForEntries } from "../../utils/macros";
 import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
+
+function formatLoggedTime(isoString: string) {
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export default function LogScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const dayKey = getTodayKey();
+
+  const [fontsLoaded] = useFonts({
+    MetalMania: require("../../assets/fonts/MetalMania-Regular.ttf"),
+  });
 
   async function refresh() {
     const data = await getDayLog(dayKey);
     setEntries(data);
   }
 
-useFocusEffect(
-  useCallback(() => {
-    refresh();
-  }, [])
-);
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
 
   const totals = totalMacrosForEntries(entries);
 
-  return (
-    <View style={{ flex: 1, padding: 16, gap: 12, backgroundColor: "#BFE9FF" }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", color: "#000" }}>Today</Text>
-      <Text style={{ color: "#000" }}>{dayKey}</Text>
+  if (!fontsLoaded) {
+    return null;
+  }
 
-      <View style={{ padding: 12, borderRadius: 12, backgroundColor: "#fff", gap: 6 }}>
-        <Text style={{ color: "#000" }}>Calories: {Math.round(totals.calories)}</Text>
-        <Text style={{ color: "#000" }}>Protein: {Math.round(totals.protein)} g</Text>
-        <Text style={{ color: "#000" }}>Carbs: {Math.round(totals.carbs)} g</Text>
-        <Text style={{ color: "#000" }}>Fat: {Math.round(totals.fat)} g</Text>
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#2e2a2a",
+        paddingHorizontal: 16,
+        paddingTop: 58,
+        paddingBottom: 16,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 18,
+        }}
+      >
+        <View
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            backgroundColor: "#3a3535",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: "#4a4545",
+          }}
+        >
+          <Ionicons name="document-text-outline" size={20} color="#fff" />
+        </View>
+
+        <Text
+          style={{
+            fontFamily: "MetalMania",
+            color: "#fff",
+            fontSize: 28,
+            letterSpacing: 2,
+            textShadowColor: "#8b5cf6",
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 10,
+          }}
+        >
+          Log
+        </Text>
+
+        <View style={{ width: 42 }} />
+      </View>
+
+      <Text
+        style={{
+          color: "#fff",
+          fontSize: 22,
+          fontWeight: "700",
+        }}
+      >
+        Today
+      </Text>
+
+      <Text
+        style={{
+          color: "#aaa",
+          marginTop: 4,
+          marginBottom: 14,
+          fontSize: 13,
+        }}
+      >
+        {dayKey}
+      </Text>
+
+      <View
+        style={{
+          backgroundColor: "#3a3535",
+          borderRadius: 18,
+          padding: 14,
+          gap: 10,
+          borderWidth: 1,
+          borderColor: "#4a4545",
+          marginBottom: 12,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
+          Daily Totals
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#2f2a2a",
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              minWidth: "47%",
+              borderLeftWidth: 5,
+              borderLeftColor: "#6b5cff",
+            }}
+          >
+            <Text style={{ color: "#aaa", fontSize: 12 }}>Calories</Text>
+            <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 2 }}>
+              {Math.round(totals.calories)}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              backgroundColor: "#2f2a2a",
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              minWidth: "47%",
+              borderLeftWidth: 5,
+              borderLeftColor: "#7C3AED",
+            }}
+          >
+            <Text style={{ color: "#aaa", fontSize: 12 }}>Protein</Text>
+            <Text style={{ color: "#c4b5fd", fontSize: 18, fontWeight: "700", marginTop: 2 }}>
+              {Math.round(totals.protein)}g
+            </Text>
+          </View>
+
+          <View
+            style={{
+              backgroundColor: "#2f2a2a",
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              minWidth: "47%",
+              borderLeftWidth: 5,
+              borderLeftColor: "#F59E0B",
+            }}
+          >
+            <Text style={{ color: "#aaa", fontSize: 12 }}>Carbs</Text>
+            <Text style={{ color: "#fcd34d", fontSize: 18, fontWeight: "700", marginTop: 2 }}>
+              {Math.round(totals.carbs)}g
+            </Text>
+          </View>
+
+          <View
+            style={{
+              backgroundColor: "#2f2a2a",
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              minWidth: "47%",
+              borderLeftWidth: 5,
+              borderLeftColor: "#16A34A",
+            }}
+          >
+            <Text style={{ color: "#aaa", fontSize: 12 }}>Fat</Text>
+            <Text style={{ color: "#86efac", fontSize: 18, fontWeight: "700", marginTop: 2 }}>
+              {Math.round(totals.fat)}g
+            </Text>
+          </View>
+        </View>
       </View>
 
       <Pressable
@@ -40,23 +207,150 @@ useFocusEffect(
           await clearDayLog(dayKey);
           await refresh();
         }}
-        style={{ paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: "#ff3b30" }}
+        style={({ pressed }) => ({
+          paddingVertical: 12,
+          borderRadius: 14,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: pressed ? "#d9342b" : "#ff3b30",
+          marginBottom: 14,
+        })}
       >
-        <Text style={{ color: "#fff", fontWeight: "600" }}>Clear Today</Text>
+        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+          Clear Today
+        </Text>
       </Pressable>
 
       <FlatList
         data={entries}
         keyExtractor={(e) => e.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 30,
+          flexGrow: entries.length === 0 ? 1 : 0,
+        }}
         renderItem={({ item }) => (
-          <View style={{ backgroundColor: "#fff", padding: 12, borderRadius: 12, marginBottom: 10 }}>
-            <Text style={{ color: "#000", fontWeight: "700" }}>{item.food.name}</Text>
-            <Text style={{ color: "#444" }}>
-              Servings: {item.servings} | {item.food.calories} cal per serving
+          <View
+            style={{
+              backgroundColor: "#3a3535",
+              padding: 14,
+              borderRadius: 16,
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: "#4a4545",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontWeight: "700",
+                    fontSize: 16,
+                  }}
+                >
+                  {item.food.name ?? "Unknown Food"}
+                </Text>
+
+                {item.food.brandOwner ? (
+                  <Text
+                    style={{
+                      color: "#aaa",
+                      fontSize: 12,
+                      marginTop: 3,
+                    }}
+                  >
+                    {item.food.brandOwner}
+                  </Text>
+                ) : null}
+
+                <Text
+                  style={{
+                    color: "#8f8a8a",
+                    fontSize: 12,
+                    marginTop: 6,
+                  }}
+                >
+                  {formatLoggedTime(item.eatenAtISO)}
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: "#6b5cff",
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
+                {Math.round(item.food.calories * item.servings)} kcal
+              </Text>
+            </View>
+
+            <Text
+              style={{
+                color: "#d1d1d1",
+                marginTop: 10,
+                fontSize: 13,
+              }}
+            >
+              Servings: {item.servings} | {Math.round(item.food.calories)} cal per serving
             </Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={{ color: "#000" }}>No foods logged yet.</Text>}
+        ListEmptyComponent={
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: 40,
+            }}
+          >
+            <View
+              style={{
+                width: 62,
+                height: 62,
+                borderRadius: 31,
+                backgroundColor: "#3a3535",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: "#4a4545",
+                marginBottom: 12,
+              }}
+            >
+              <Ionicons name="restaurant-outline" size={28} color="#aaa" />
+            </View>
+
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 16,
+                fontWeight: "700",
+              }}
+            >
+              No foods logged yet
+            </Text>
+
+            <Text
+              style={{
+                color: "#aaa",
+                fontSize: 13,
+                marginTop: 6,
+                textAlign: "center",
+              }}
+            >
+              Foods you log from the Home screen will appear here.
+            </Text>
+          </View>
+        }
       />
     </View>
   );
