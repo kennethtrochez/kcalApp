@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Image, Dimensions } from "react-native";
+import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Dimensions, Image } from "react-native";
+import { router } from "expo-router";
 
 import { searchFoods, FoodPreview, getFoodDetails, FoodTypeFilter } from "../../services/foodService";
-import { addDayWaterOz, addToDayLog, getTodayKey, getDayLog, getDayWaterOz } from "../../lib/storage";
+import { addDayWaterOz, addToDayLog, getDayLog, getDayWaterOz } from "../../lib/storage";
+import { getProfile, UserProfile } from "../../lib/profileStorage";
 import { totalMacrosForEntries } from "../../utils/macros";
 import { makeId, LogEntry, Food } from "../../data/food";
 import BodyFill from "../../components/BodyFill";
@@ -112,6 +114,7 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [waterOz, setWaterOz] = useState(0);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loggingFoodId, setLoggingFoodId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [customName, setCustomName] = useState("");
@@ -124,7 +127,6 @@ export default function SearchScreen() {
   const [savingCustomEntry, setSavingCustomEntry] = useState(false);
   const [draftFoodType, setDraftFoodType] = useState<FoodTypeFilter>("all");
   const [draftBrandFilter, setDraftBrandFilter] = useState("");
-  const calorieGoal = 2000;
 
   const [fontsLoaded] = useFonts({
     MetalMania: require("../../assets/fonts/MetalMania-Regular.ttf"),
@@ -144,20 +146,23 @@ export default function SearchScreen() {
       (async () => {
         try {
           const dayKey = getDateKey(selectedDate);
-          const [selectedDayLog, selectedDayWaterOz] = await Promise.all([
+          const [selectedDayLog, selectedDayWaterOz, savedProfile] = await Promise.all([
             getDayLog(dayKey),
             getDayWaterOz(dayKey),
+            getProfile(),
           ]);
 
           if (alive) {
             setEntries(selectedDayLog);
             setWaterOz(selectedDayWaterOz);
+            setProfile(savedProfile);
           }
         } catch (e) {
           console.log("Failed to load today log", e);
           if (alive) {
             setEntries([]);
             setWaterOz(0);
+            setProfile(null);
           }
         }
       })();
@@ -188,10 +193,10 @@ export default function SearchScreen() {
     return columns;
   }, [sortedEntries]);
 
-  const progress = Math.max(
-    0,
-    Math.min(1, calorieGoal > 0 ? totals.calories / calorieGoal : 0)
-  );
+  const calorieGoal = profile?.dailyCalories;
+  const proteinGoal = profile?.proteinGoal;
+  const carbsGoal = profile?.carbsGoal;
+  const fatGoal = profile?.fatGoal;
 
   const calendarDates = useMemo(() => {
     const today = new Date();
@@ -408,7 +413,7 @@ export default function SearchScreen() {
 
     <Pressable
       onPress={() => {
-        console.log("Open profile");
+        router.push("/profile");
       }}
       style={{
         width: 42,
@@ -421,7 +426,14 @@ export default function SearchScreen() {
         borderColor: "#4a4545",
       }}
     >
-      <Ionicons name="person-outline" size={22} color="#fff" />
+      {profile?.avatarUri ? (
+        <Image
+          source={{ uri: profile.avatarUri }}
+          style={{ width: "100%", height: "100%", borderRadius: 21 }}
+        />
+      ) : (
+        <Ionicons name="person-outline" size={22} color="#fff" />
+      )}
     </Pressable>
 
     <Text
@@ -1015,8 +1027,8 @@ export default function SearchScreen() {
               <BodyFill
                 width={342}
                 height={664}
-                caloriesConsumed={totals.calories}
-                calorieGoal={calorieGoal}
+                caloriesConsumed={calorieGoal ? totals.calories : 0}
+                calorieGoal={calorieGoal ?? 1}
                 proteinG={totals.protein}
                 carbsG={totals.carbs}
                 fatG={totals.fat}
@@ -1047,7 +1059,7 @@ export default function SearchScreen() {
                 {Math.round(totals.calories)}
               </Text>
               <Text style={{ color: "#aaa", fontSize: 13, marginTop: 2 }}>
-                of {calorieGoal}
+                {calorieGoal !== undefined ? `of ${calorieGoal} kcal` : "Goal not set"}
               </Text>
             </View>
 
@@ -1064,6 +1076,9 @@ export default function SearchScreen() {
               <Text style={{ color: "#c4b5fd", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.protein)}g
               </Text>
+              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
+                {proteinGoal !== undefined ? `of ${proteinGoal}g` : "Goal not set"}
+              </Text>
             </View>
 
             <View
@@ -1079,6 +1094,9 @@ export default function SearchScreen() {
               <Text style={{ color: "#fcd34d", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.carbs)}g
               </Text>
+              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
+                {carbsGoal !== undefined ? `of ${carbsGoal}g` : "Goal not set"}
+              </Text>
             </View>
 
             <View
@@ -1093,6 +1111,9 @@ export default function SearchScreen() {
               <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Fat</Text>
               <Text style={{ color: "#16A34A", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.fat)}g
+              </Text>
+              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
+                {fatGoal !== undefined ? `of ${fatGoal}g` : "Goal not set"}
               </Text>
             </View>
           </View>

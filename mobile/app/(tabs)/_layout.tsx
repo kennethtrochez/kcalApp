@@ -80,6 +80,22 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              focused={focused}
+              color={color}
+              label="Profile"
+              activeIcon="person"
+              inactiveIcon="person-outline"
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="scanner"
         options={{
           title: "Scanner",
