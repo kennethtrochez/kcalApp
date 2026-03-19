@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import os
 from dotenv import load_dotenv
 import requests
+import re
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
 
@@ -58,8 +59,9 @@ def search_foods(q: str, offset: int = 0, pageSize: int = 10):
     foods = data.get("foods", [])
 
     cleaned_res = format_usda_results(foods)
+    ranked_res = rank_search_results(cleaned_res, q)
 
-    return cleaned_res
+    return ranked_res
 
 # Combine Food info and macros
 @app.get("/foods/usda/{fdcId}")
@@ -96,6 +98,74 @@ def format_usda_results(foods):
         cleaned.append(item)
 
     return cleaned
+
+def normalize_query_terms(query: str):
+    filler_words = {"of", "from", "a", "an", "the", "for"}
+    quantity_words = {
+        "slice", "slices", "cup", "cups", "tbsp", "tsp", "oz", "ounce",
+        "ounces", "g", "gram", "grams", "lb", "lbs", "serving", "servings",
+        "piece", "pieces",
+    }
+
+    cleaned = re.sub(r"[^a-z0-9\s]", " ", query.lower())
+    tokens = [token for token in cleaned.split() if token]
+
+    index = 0
+    while index < len(tokens) and tokens[index].isdigit():
+        index += 1
+
+        if index < len(tokens) and tokens[index] in quantity_words:
+            index += 1
+
+    return [token for token in tokens[index:] if token not in filler_words]
+
+def score_search_result(item, query_terms):
+    description = (item.get("description") or "").lower()
+    brand_owner = (item.get("brandOwner") or "").lower()
+
+    score = 0
+    description_matches = 0
+    brand_matches = 0
+
+    for term in query_terms:
+        if term in description:
+            score += 10
+            description_matches += 1
+
+            if description.startswith(term):
+                score += 2
+
+        if brand_owner and term in brand_owner:
+            score += 5
+            brand_matches += 1
+
+    if description_matches >= 2:
+        score += 6
+
+    if brand_matches >= 1 and description_matches >= 1:
+        score += 4
+
+    if description_matches == 0 and brand_matches <= 1:
+        score -= 5
+
+    return score
+
+def rank_search_results(items, query: str):
+    query_terms = normalize_query_terms(query)
+
+    if not query_terms:
+        return items
+
+    ranked_items = sorted(
+        enumerate(items),
+        key=lambda pair: (
+            score_search_result(pair[1], query_terms),
+            -pair[0],
+        ),
+        reverse=True,
+    )
+
+    return [item for _, item in ranked_items]
 
 # Grab basic Food information
 def extract_basic_info(data):

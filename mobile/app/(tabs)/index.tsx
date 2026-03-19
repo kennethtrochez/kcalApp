@@ -17,6 +17,84 @@ function formatLoggedTime(isoString: string) {
   });
 }
 
+function normalizeSearchQuery(query: string) {
+  const fillerWords = new Set([
+    "of",
+    "a",
+    "an",
+    "the",
+    "for",
+  ]);
+  const sizeWords = new Set(["small", "medium", "large"]);
+  const quantityWords = new Set([
+    "slice",
+    "slices",
+    "cup",
+    "cups",
+    "tbsp",
+    "tsp",
+    "oz",
+    "ounce",
+    "ounces",
+    "g",
+    "gram",
+    "grams",
+    "lb",
+    "lbs",
+    "serving",
+    "servings",
+    "piece",
+    "pieces",
+  ]);
+
+  const cleaned = query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) {
+    return "";
+  }
+
+  const tokens = cleaned.split(" ").filter(Boolean);
+  const normalizedTokens: string[] = [];
+  let index = 0;
+
+  while (index < tokens.length && /^\d+$/.test(tokens[index])) {
+    index += 1;
+
+    if (index < tokens.length && quantityWords.has(tokens[index])) {
+      index += 1;
+    }
+  }
+
+  for (; index < tokens.length; index += 1) {
+    const token = tokens[index];
+
+    if (fillerWords.has(token)) {
+      continue;
+    }
+
+    normalizedTokens.push(token);
+  }
+
+  const fromIndex = normalizedTokens.indexOf("from");
+
+  if (fromIndex >= 0 && fromIndex < normalizedTokens.length - 1) {
+    const brandTokens = normalizedTokens.slice(fromIndex + 1);
+    const foodTokens = normalizedTokens.slice(0, fromIndex).filter((token) => !sizeWords.has(token));
+    const sizeTokens = normalizedTokens.slice(0, fromIndex).filter((token) => sizeWords.has(token));
+
+    return [...brandTokens, ...foodTokens, ...sizeTokens].join(" ").trim();
+  }
+
+  const nonSizeTokens = normalizedTokens.filter((token) => !sizeWords.has(token));
+  const presentSizeTokens = normalizedTokens.filter((token) => sizeWords.has(token));
+
+  return [...nonSizeTokens, ...presentSizeTokens].join(" ").trim();
+}
+
 export default function SearchScreen() {
   const calendarListRef = useRef<FlatList<any> | null>(null);
   const [showCustomEntry, setShowCustomEntry] = useState(false);
@@ -144,14 +222,14 @@ export default function SearchScreen() {
   const initialCalendarIndex = Math.max(0, todayIndex - 2);
 
   async function onSearch() {
-    const trimmedQuery = query.trim();
+    const normalizedQuery = normalizeSearchQuery(query);
 
     setResults([]);
     setOffset(0);
-    setActiveQuery(trimmedQuery);
+    setActiveQuery(normalizedQuery);
     setHasMore(false);
 
-    if (!trimmedQuery) {
+    if (!normalizedQuery) {
       setError(null);
       return;
     }
@@ -160,7 +238,7 @@ export default function SearchScreen() {
       setError(null);
       setLoading(true);
 
-      const data = await searchFoods(trimmedQuery, 0, 10);
+      const data = await searchFoods(normalizedQuery, 0, 10);
       setResults(data);
       setOffset(data.length);
       setHasMore(data.length === 10);
