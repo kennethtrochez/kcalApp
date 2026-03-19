@@ -8,12 +8,26 @@ export type FoodPreview = {
     brandOwner?: string;
 };
 
-export async function searchFoods(q: string): Promise<FoodPreview[]>{
+export async function searchFoods(
+    q: string,
+    offset?: number,
+    pageSize?: number
+): Promise<FoodPreview[]>{
     const query = encodeURIComponent(q.trim());
 
     if (!query) return [];
 
-    return apiGet<FoodPreview[]>(`/foods/search?q=${query}`);
+    const params = new URLSearchParams({ q: query });
+
+    if (offset !== undefined) {
+        params.set("offset", String(offset));
+    }
+
+    if (pageSize !== undefined) {
+        params.set("pageSize", String(pageSize));
+    }
+
+    return apiGet<FoodPreview[]>(`/foods/search?${params.toString()}`);
 }
 
 type BackendFood = {

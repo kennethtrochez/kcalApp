@@ -28,8 +28,15 @@ def root():
 
 # Food search
 @app.get("/foods/search")
-def search_foods(q: str):
+def search_foods(q: str, offset: int = 0, pageSize: int = 10):
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be >= 0")
+
+    if pageSize <= 0:
+        raise HTTPException(status_code=400, detail="pageSize must be > 0")
+
     url = "https://api.nal.usda.gov/fdc/v1/foods/search"
+    page_number = (offset // pageSize) + 1
 
     params = {
         "api_key": USDA_API_KEY
@@ -37,7 +44,8 @@ def search_foods(q: str):
 
     body = {
         "query": q,
-        "pageSize": 10
+        "pageSize": pageSize,
+        "pageNumber": page_number,
     }
     
     response = requests.post(url, params=params, json=body)
