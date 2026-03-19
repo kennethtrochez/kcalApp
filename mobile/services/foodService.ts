@@ -8,10 +8,14 @@ export type FoodPreview = {
     brandOwner?: string;
 };
 
+export type FoodTypeFilter = "all" | "branded" | "generic";
+
 export async function searchFoods(
     q: string,
     offset?: number,
-    pageSize?: number
+    pageSize?: number,
+    foodType: FoodTypeFilter = "all",
+    brand?: string
 ): Promise<FoodPreview[]>{
     const query = encodeURIComponent(q.trim());
 
@@ -25,6 +29,14 @@ export async function searchFoods(
 
     if (pageSize !== undefined) {
         params.set("pageSize", String(pageSize));
+    }
+
+    if (foodType !== "all") {
+        params.set("foodType", foodType);
+    }
+
+    if (brand && brand.trim()) {
+        params.set("brand", brand.trim());
     }
 
     return apiGet<FoodPreview[]>(`/foods/search?${params.toString()}`);

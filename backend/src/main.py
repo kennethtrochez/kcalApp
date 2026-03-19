@@ -29,12 +29,15 @@ def root():
 
 # Food search
 @app.get("/foods/search")
-def search_foods(q: str, offset: int = 0, pageSize: int = 10):
+def search_foods(q: str, offset: int = 0, pageSize: int = 10, foodType: str = "all", brand: str | None = None):
     if offset < 0:
         raise HTTPException(status_code=400, detail="offset must be >= 0")
 
     if pageSize <= 0:
         raise HTTPException(status_code=400, detail="pageSize must be > 0")
+
+    if foodType not in {"all", "branded", "generic"}:
+        raise HTTPException(status_code=400, detail="foodType must be all, branded, or generic")
 
     url = "https://api.nal.usda.gov/fdc/v1/foods/search"
     page_number = (offset // pageSize) + 1
@@ -59,7 +62,7 @@ def search_foods(q: str, offset: int = 0, pageSize: int = 10):
     foods = data.get("foods", [])
 
     cleaned_res = format_usda_results(foods)
-    ranked_res = rank_search_results(cleaned_res, q)
+    ranked_res = rank_search_results(cleaned_res, q, foodType, brand)
 
     return ranked_res
 
@@ -119,13 +122,16 @@ def normalize_query_terms(query: str):
 
     return [token for token in tokens[index:] if token not in filler_words]
 
-def score_search_result(item, query_terms):
+def score_search_result(item, query_terms, food_type: str, brand_terms):
     description = (item.get("description") or "").lower()
     brand_owner = (item.get("brandOwner") or "").lower()
+    data_type = (item.get("dataType") or "").lower()
+    is_branded = "branded" in data_type
 
     score = 0
     description_matches = 0
     brand_matches = 0
+    brand_filter_matches = 0
 
     for term in query_terms:
         if term in description:
@@ -139,27 +145,49 @@ def score_search_result(item, query_terms):
             score += 5
             brand_matches += 1
 
+    for term in brand_terms:
+        if brand_owner and term in brand_owner:
+            score += 18
+            brand_filter_matches += 1
+
+            if brand_owner.startswith(term):
+                score += 4
+        elif term in description:
+            score += 6
+
     if description_matches >= 2:
         score += 6
 
     if brand_matches >= 1 and description_matches >= 1:
         score += 4
 
+    if brand_filter_matches >= 1 and description_matches >= 1:
+        score += 10
+
+    if brand_terms and brand_filter_matches == 0:
+        score -= 12
+
     if description_matches == 0 and brand_matches <= 1:
         score -= 5
 
+    if food_type == "branded":
+        score += 8 if is_branded else -4
+    elif food_type == "generic":
+        score += 8 if not is_branded else -6
+
     return score
 
-def rank_search_results(items, query: str):
+def rank_search_results(items, query: str, food_type: str, brand: str | None = None):
     query_terms = normalize_query_terms(query)
+    brand_terms = normalize_query_terms(brand or "")
 
-    if not query_terms:
+    if not query_terms and not brand_terms:
         return items
 
     ranked_items = sorted(
         enumerate(items),
         key=lambda pair: (
-            score_search_result(pair[1], query_terms),
+            score_search_result(pair[1], query_terms, food_type, brand_terms),
             -pair[0],
         ),
         reverse=True,

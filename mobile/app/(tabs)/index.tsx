@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Image, Dimensions } from "react-native";
 
-import { searchFoods, FoodPreview, getFoodDetails } from "../../services/foodService";
+import { searchFoods, FoodPreview, getFoodDetails, FoodTypeFilter } from "../../services/foodService";
 import { addToDayLog, getTodayKey, getDayLog } from "../../lib/storage";
 import { totalMacrosForEntries } from "../../utils/macros";
 import { makeId, LogEntry, Food } from "../../data/food";
@@ -98,6 +98,7 @@ function normalizeSearchQuery(query: string) {
 export default function SearchScreen() {
   const calendarListRef = useRef<FlatList<any> | null>(null);
   const [showCustomEntry, setShowCustomEntry] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodPreview[]>([]);
@@ -105,6 +106,8 @@ export default function SearchScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [activeQuery, setActiveQuery] = useState("");
+  const [activeFoodType, setActiveFoodType] = useState<FoodTypeFilter>("all");
+  const [activeBrandFilter, setActiveBrandFilter] = useState("");
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -118,6 +121,8 @@ export default function SearchScreen() {
   const [customFat, setCustomFat] = useState("");
   const [customServings, setCustomServings] = useState("1");
   const [savingCustomEntry, setSavingCustomEntry] = useState(false);
+  const [draftFoodType, setDraftFoodType] = useState<FoodTypeFilter>("all");
+  const [draftBrandFilter, setDraftBrandFilter] = useState("");
   const calorieGoal = 2000;
 
   const [fontsLoaded] = useFonts({
@@ -220,13 +225,20 @@ export default function SearchScreen() {
   const calendarItemLength = itemWidth + 8;
   const todayIndex = calendarDates.findIndex((item) => item.isToday);
   const initialCalendarIndex = Math.max(0, todayIndex - 2);
+  const foodTypeOptions: { label: string; value: FoodTypeFilter }[] = [
+    { label: "All", value: "all" },
+    { label: "Branded", value: "branded" },
+    { label: "Generic", value: "generic" },
+  ];
 
-  async function onSearch() {
-    const normalizedQuery = normalizeSearchQuery(query);
+  async function runSearch(normalizedQuery: string, foodType: FoodTypeFilter, brandFilter: string) {
+    const trimmedBrandFilter = brandFilter.trim();
 
     setResults([]);
     setOffset(0);
     setActiveQuery(normalizedQuery);
+    setActiveFoodType(foodType);
+    setActiveBrandFilter(trimmedBrandFilter);
     setHasMore(false);
 
     if (!normalizedQuery) {
@@ -238,7 +250,7 @@ export default function SearchScreen() {
       setError(null);
       setLoading(true);
 
-      const data = await searchFoods(normalizedQuery, 0, 10);
+      const data = await searchFoods(normalizedQuery, 0, 10, foodType, trimmedBrandFilter);
       setResults(data);
       setOffset(data.length);
       setHasMore(data.length === 10);
@@ -250,6 +262,11 @@ export default function SearchScreen() {
     }
   }
 
+  async function onSearch() {
+    const normalizedQuery = normalizeSearchQuery(query);
+    await runSearch(normalizedQuery, activeFoodType, activeBrandFilter);
+  }
+
   async function loadMoreResults() {
     if (loading || loadingMore || !hasMore || !activeQuery) {
       return;
@@ -258,7 +275,7 @@ export default function SearchScreen() {
     try {
       setLoadingMore(true);
 
-      const data = await searchFoods(activeQuery, offset, 10);
+      const data = await searchFoods(activeQuery, offset, 10, activeFoodType, activeBrandFilter);
 
       setResults((current) => [...current, ...data]);
       setOffset((current) => current + data.length);
@@ -463,7 +480,9 @@ export default function SearchScreen() {
 
     <Pressable
       onPress={() => {
-        console.log("Open filters");
+        setDraftFoodType(activeFoodType);
+        setDraftBrandFilter(activeBrandFilter);
+        setShowFilters((current) => !current);
       }}
       style={({ pressed }) => ({
         width: 48,
@@ -510,6 +529,105 @@ export default function SearchScreen() {
     </Pressable>
     
   </View>
+    {showFilters ? (
+      <View
+        style={{
+          backgroundColor: "#3a3535",
+          borderRadius: 18,
+          padding: 12,
+          borderWidth: 1,
+          borderColor: "#4b4545",
+          gap: 10,
+          zIndex: 3,
+          elevation: 3,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
+          Search Filter
+        </Text>
+
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {foodTypeOptions.map((option) => {
+            const selected = draftFoodType === option.value;
+
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => {
+                  setDraftFoodType(option.value);
+                }}
+                style={({ pressed }) => ({
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor: selected ? "#6b5cff" : pressed ? "#4a4545" : "#2e2a2a",
+                  borderWidth: 1,
+                  borderColor: selected ? "#8d84ff" : "#4a4545",
+                })}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <TextInput
+          value={draftBrandFilter}
+          onChangeText={setDraftBrandFilter}
+          placeholderTextColor="#888"
+          autoCapitalize="words"
+          style={{
+            borderWidth: 1,
+            borderColor: "#4a4545",
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            borderRadius: 14,
+            color: "#fff",
+            backgroundColor: "#2e2a2a",
+          }}
+        />
+
+        <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
+          <Pressable
+            onPress={async () => {
+              setDraftFoodType("all");
+              setDraftBrandFilter("");
+              setShowFilters(false);
+              await runSearch(normalizeSearchQuery(query), "all", "");
+            }}
+            style={({ pressed }) => ({
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 12,
+              backgroundColor: pressed ? "#4a4545" : "#2e2a2a",
+              borderWidth: 1,
+              borderColor: "#4a4545",
+            })}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Clear</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={async () => {
+              setShowFilters(false);
+              await runSearch(normalizeSearchQuery(query), draftFoodType, draftBrandFilter);
+            }}
+            style={({ pressed }) => ({
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 12,
+              backgroundColor: pressed ? "#5b5567" : "#6b5cff",
+              borderWidth: 1,
+              borderColor: "#8d84ff",
+            })}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Apply</Text>
+          </Pressable>
+        </View>
+      </View>
+    ) : null}
     {showCustomEntry ? (
       <View
         style={{
