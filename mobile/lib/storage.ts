@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LogEntry } from "../data/food";
 
 const DAY_LOG_KEY = (dayKey: string) => `daylog:${dayKey}`;
+const DAY_WATER_KEY = (dayKey: string) => `daywater:${dayKey}`;
 
 // dayKey: YYYY-MM-DD
 export function getTodayKey(): string{
@@ -35,4 +36,23 @@ export async function clearDayLog(dayKey: string): Promise<void>{
 
 export async function getTodayLog(): Promise<LogEntry[]> {
   return getDayLog(getTodayKey());
+}
+
+export async function getDayWaterOz(dayKey: string): Promise<number> {
+    const raw = await AsyncStorage.getItem(DAY_WATER_KEY(dayKey));
+    if (!raw) return 0;
+
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : 0;
+}
+
+export async function saveDayWaterOz(dayKey: string, ounces: number): Promise<void> {
+    await AsyncStorage.setItem(DAY_WATER_KEY(dayKey), String(Math.max(0, ounces)));
+}
+
+export async function addDayWaterOz(dayKey: string, ounces: number): Promise<number> {
+    const current = await getDayWaterOz(dayKey);
+    const next = Math.max(0, current + ounces);
+    await saveDayWaterOz(dayKey, next);
+    return next;
 }

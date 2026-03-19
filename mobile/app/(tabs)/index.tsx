@@ -3,7 +3,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { View, TextInput, Pressable, Text, FlatList, ActivityIndicator, Image, Dimensions } from "react-native";
 
 import { searchFoods, FoodPreview, getFoodDetails, FoodTypeFilter } from "../../services/foodService";
-import { addToDayLog, getTodayKey, getDayLog } from "../../lib/storage";
+import { addDayWaterOz, addToDayLog, getTodayKey, getDayLog, getDayWaterOz } from "../../lib/storage";
 import { totalMacrosForEntries } from "../../utils/macros";
 import { makeId, LogEntry, Food } from "../../data/food";
 import BodyFill from "../../components/BodyFill";
@@ -111,6 +111,7 @@ export default function SearchScreen() {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [waterOz, setWaterOz] = useState(0);
   const [loggingFoodId, setLoggingFoodId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [customName, setCustomName] = useState("");
@@ -142,11 +143,22 @@ export default function SearchScreen() {
 
       (async () => {
         try {
-          const selectedDayLog = await getDayLog(getDateKey(selectedDate));
-          if (alive) setEntries(selectedDayLog);
+          const dayKey = getDateKey(selectedDate);
+          const [selectedDayLog, selectedDayWaterOz] = await Promise.all([
+            getDayLog(dayKey),
+            getDayWaterOz(dayKey),
+          ]);
+
+          if (alive) {
+            setEntries(selectedDayLog);
+            setWaterOz(selectedDayWaterOz);
+          }
         } catch (e) {
           console.log("Failed to load today log", e);
-          if (alive) setEntries([]);
+          if (alive) {
+            setEntries([]);
+            setWaterOz(0);
+          }
         }
       })();
 
@@ -298,6 +310,16 @@ export default function SearchScreen() {
     setCustomCarbs("");
     setCustomFat("");
     setCustomServings("1");
+  }
+
+  async function addWaterCup(amount: number) {
+    try {
+      setError(null);
+      const updatedWaterOz = await addDayWaterOz(getDateKey(selectedDate), amount);
+      setWaterOz(updatedWaterOz);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to save water");
+    }
   }
 
   async function saveCustomEntry() {
@@ -868,7 +890,7 @@ export default function SearchScreen() {
               width: itemWidth,
               height: 72,
               marginRight: index === calendarDates.length - 1 ? 0 : 8,
-              borderRadius: 14,
+              borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: item.isSelected ? "#6b5cff" : "#3a3535",
@@ -879,7 +901,7 @@ export default function SearchScreen() {
             <Text
               style={{
                 color: item.isSelected ? "#fff" : "#aaa",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: "600",
               }}
             >
@@ -891,7 +913,7 @@ export default function SearchScreen() {
                 color: "#fff",
                 fontSize: 18,
                 fontWeight: "700",
-                marginTop: 4,
+                marginTop: 3,
               }}
             >
               {item.dateNumber}
@@ -915,7 +937,7 @@ export default function SearchScreen() {
             alignItems: "center",
             justifyContent: "space-between",
             paddingHorizontal: 8,
-            marginTop: -100,
+            marginTop: -128,
             zIndex: 1,
             elevation: 1,
           }}
@@ -925,25 +947,90 @@ export default function SearchScreen() {
               flex: 1.2,
               justifyContent: "center",
               alignItems: "center",
+              position: "relative",
             }}
           >
-            <BodyFill
-              width={320}
-              height={620}
-              caloriesConsumed={totals.calories}
-              calorieGoal={calorieGoal}
-              proteinG={totals.protein}
-              carbsG={totals.carbs}
-              fatG={totals.fat}
-            />
+            <View
+              style={{
+                position: "absolute",
+                left: 5,
+                top: 120,
+                alignItems: "center",
+                gap: 4,
+                zIndex: 3,
+                elevation: 3,
+              }}
+            >
+              <View style={{ alignItems: "center" }}>
+                <Text style={{ color: "#8fd3ff", fontSize: 10, fontWeight: "700" }}>
+                  {waterOz} oz
+                </Text>
+                <Text style={{ color: "#6fb7df", fontSize: 8, fontWeight: "600" }}>
+                  drank today
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Pressable
+                  onPress={() => addWaterCup(-8)}
+                  style={({ pressed }) => ({
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: pressed ? "#4a4545" : "#3a3535",
+                    borderWidth: 1,
+                    borderColor: "#4a4545",
+                  })}
+                >
+                  <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>-</Text>
+                </Pressable>
+
+                <View style={{ alignItems: "center", gap: 1 }}>
+                  <Pressable
+                    onPress={() => addWaterCup(8)}
+                    style={({ pressed }) => ({
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: pressed ? "#2b5d7d" : "#3276a0",
+                      borderWidth: 1,
+                      borderColor: "#5ba8d6",
+                    })}
+                  >
+                    <Ionicons name="water-outline" size={14} color="#d9f2ff" />
+                  </Pressable>
+
+                  <Text style={{ color: "#8fd3ff", fontSize: 8, fontWeight: "600" }}>
+                    +8 oz
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ marginLeft: 24 }}>
+              <BodyFill
+                width={342}
+                height={664}
+                caloriesConsumed={totals.calories}
+                calorieGoal={calorieGoal}
+                proteinG={totals.protein}
+                carbsG={totals.carbs}
+                fatG={totals.fat}
+              />
+            </View>
           </View>
 
           <View
-            style={{
-              flex: 0.6,
+            style={{ //nutrition fact scale
+              flex: 0.45,
               gap: 12,
-              paddingRight: 8,
-              marginTop: -60,
+              paddingRight: 0,
+              marginTop: -54,
+              marginLeft: 16,
             }}
           >
             <View
@@ -953,13 +1040,13 @@ export default function SearchScreen() {
                 padding: 10,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>
                 Calories
               </Text>
               <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 4 }}>
                 {Math.round(totals.calories)}
               </Text>
-              <Text style={{ color: "#aaa", marginTop: 2 }}>
+              <Text style={{ color: "#aaa", fontSize: 13, marginTop: 2 }}>
                 of {calorieGoal}
               </Text>
             </View>
@@ -968,12 +1055,12 @@ export default function SearchScreen() {
               style={{
                 backgroundColor: "#3a3535",
                 borderRadius: 16,
-                padding: 8,
+                padding: 9,
                 borderLeftWidth: 6,
                 borderLeftColor: "#7C3AED",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Protein</Text>
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Protein</Text>
               <Text style={{ color: "#c4b5fd", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.protein)}g
               </Text>
@@ -983,12 +1070,12 @@ export default function SearchScreen() {
               style={{
                 backgroundColor: "#3a3535",
                 borderRadius: 16,
-                padding: 8,
+                padding: 9,
                 borderLeftWidth: 6,
                 borderLeftColor: "#F59E0B",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Carbs</Text>
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Carbs</Text>
               <Text style={{ color: "#fcd34d", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.carbs)}g
               </Text>
@@ -998,12 +1085,12 @@ export default function SearchScreen() {
               style={{
                 backgroundColor: "#3a3535",
                 borderRadius: 16,
-                padding: 8,
+                padding: 9,
                 borderLeftWidth: 6,
                 borderLeftColor: "#16A34A",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Fat</Text>
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>Fat</Text>
               <Text style={{ color: "#16A34A", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.fat)}g
               </Text>
