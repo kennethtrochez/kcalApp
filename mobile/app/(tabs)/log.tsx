@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, Text, FlatList, Pressable, Image } from "react-native";
 import { LogEntry } from "../../data/food";
 import { clearDayLog, getDayLog, getTodayKey } from "../../lib/storage";
+import { getProfile, UserProfile } from "../../lib/profileStorage";
 import { totalMacrosForEntries } from "../../utils/macros";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 
@@ -16,6 +17,7 @@ function formatLoggedTime(isoString: string) {
 
 export default function LogScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const dayKey = getTodayKey();
 
   const [fontsLoaded] = useFonts({
@@ -23,8 +25,12 @@ export default function LogScreen() {
   });
 
   async function refresh() {
-    const data = await getDayLog(dayKey);
+    const [data, savedProfile] = await Promise.all([
+      getDayLog(dayKey),
+      getProfile(),
+    ]);
     setEntries(data);
+    setProfile(savedProfile);
   }
 
   useFocusEffect(
@@ -57,7 +63,10 @@ export default function LogScreen() {
           marginBottom: 18,
         }}
       >
-        <View
+        <Pressable
+          onPress={() => {
+            router.push("/profile");
+          }}
           style={{
             width: 42,
             height: 42,
@@ -67,10 +76,18 @@ export default function LogScreen() {
             justifyContent: "center",
             borderWidth: 1,
             borderColor: "#4a4545",
+            overflow: "hidden",
           }}
         >
-          <Ionicons name="document-text-outline" size={20} color="#fff" />
-        </View>
+          {profile?.avatarUri ? (
+            <Image
+              source={{ uri: profile.avatarUri }}
+              style={{ width: "100%", height: "100%", borderRadius: 21 }}
+            />
+          ) : (
+            <Ionicons name="person-outline" size={22} color="#fff" />
+          )}
+        </Pressable>
 
         <Text
           style={{
