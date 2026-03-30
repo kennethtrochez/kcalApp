@@ -198,6 +198,8 @@ export default function SearchScreen() {
   const carbsGoal = profile?.carbsGoal;
   const fatGoal = profile?.fatGoal;
   const hasProfile = Boolean(profile?.profileCreatedAt);
+  const isOverCalorieGoal =
+    typeof calorieGoal === "number" && calorieGoal > 0 && totals.calories > calorieGoal;
 
   const calendarDates = useMemo(() => {
     const today = new Date();
@@ -1110,12 +1112,19 @@ export default function SearchScreen() {
                 padding: 10,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>
-                Calories
-              </Text>
-              <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 4 }}>
-                {Math.round(totals.calories)}
-              </Text>
+                <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>
+                  Calories
+                </Text>
+                <Text
+                  style={{
+                    color: isOverCalorieGoal ? "#ef4444" : "#fff",
+                    fontSize: 22,
+                    fontWeight: "700",
+                    marginTop: 4,
+                  }}
+                >
+                  {Math.round(totals.calories)}
+                </Text>
               {renderGoalStatus(calorieGoal, `of ${calorieGoal} kcal`)}
             </View>
 

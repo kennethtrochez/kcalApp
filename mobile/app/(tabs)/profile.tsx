@@ -242,18 +242,13 @@ export default function ProfileScreen() {
                 )}
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700" }}>
-                  {profile?.displayName?.trim() || "Not set"}
-                </Text>
-                {profile?.email?.trim() ? (
-                  <Text style={{ color: "#b8b0b0", fontSize: 14, marginTop: 4 }}>
-                    {profile.email.trim()}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700" }}>
+                    {profile?.displayName?.trim() || "Not set"}
                   </Text>
-                ) : null}
+                </View>
               </View>
             </View>
-          </View>
 
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
             Goals
