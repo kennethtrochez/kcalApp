@@ -1,17 +1,19 @@
-import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { router } from "expo-router";
 
-import { getProfile, UserProfile } from "../../lib/profileStorage";
+import { getProfile, normalizeProfile, UserProfile } from "../../lib/profileStorage";
+import { apiFetch } from "../../services/api";
+import { setAppMode, type AppMode, getAppMode } from "../../services/appMode";
+import { signIn, signOut, signUp } from "../../services/authState";
 
 const actionItems = [
   { label: "Edit Profile", icon: "create-outline" as const, route: "/profile/edit" },
   { label: "Goals", icon: "flag-outline" as const, route: "/profile/goals" },
   { label: "Preferences", icon: "options-outline" as const, route: "/profile/preferences" },
-  { label: "Sign Out", icon: "log-out-outline" as const, route: null },
 ];
 
 function formatValue(value: number | undefined, suffix: string) {
@@ -34,22 +36,45 @@ export default function ProfileScreen() {
     MetalMania: require("../../assets/fonts/MetalMania-Regular.ttf"),
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [appMode, setAppModeState] = useState<AppMode | null>(null);
+  const [authBusy, setAuthBusy] = useState<"signin" | "signup" | null>(null);
+  const loadProfile = useCallback(async (): Promise<UserProfile | null> => {
+    const nextMode = await getAppMode();
+    setAppModeState(nextMode);
+
+    if (nextMode !== "authenticated") {
+      return getProfile();
+    }
+
+    const loaded = await apiFetch("/me/profile");
+    const normalized = normalizeProfile(loaded as Record<string, unknown>);
+    const hasBackendProfile = Object.keys(normalized).length > 0;
+
+    return hasBackendProfile ? normalized : null;
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
 
       (async () => {
-        const loaded = await getProfile();
-        if (alive) {
-          setProfile(loaded);
+        try {
+          const nextProfile = await loadProfile();
+
+          if (alive) {
+            setProfile(nextProfile);
+          }
+        } catch {
+          if (alive) {
+            setProfile(null);
+          }
         }
       })();
 
       return () => {
         alive = false;
       };
-    }, [])
+    }, [loadProfile])
   );
 
   if (!fontsLoaded) {
@@ -147,7 +172,13 @@ export default function ProfileScreen() {
           </Text>
 
           <Pressable
-            onPress={() => router.push("/profile/edit")}
+            onPress={() => {
+              void (async () => {
+                await setAppMode("local");
+                setAppModeState("local");
+                router.push("/profile/edit");
+              })();
+            }}
             style={({ pressed }) => ({
               marginTop: 20,
               paddingHorizontal: 20,
@@ -162,6 +193,19 @@ export default function ProfileScreen() {
               Create Profile
             </Text>
           </Pressable>
+
+          <Text
+            style={{
+              color: "#8f8a8a",
+              fontSize: 13,
+              textAlign: "center",
+              marginTop: 12,
+              lineHeight: 20,
+              maxWidth: 300,
+            }}
+          >
+            You can use kCalApp locally without a profile, then set one up here when you want goals and personalization.
+          </Text>
         </View>
       ) : (
         <>
@@ -202,9 +246,11 @@ export default function ProfileScreen() {
                 <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700" }}>
                   {profile?.displayName?.trim() || "Not set"}
                 </Text>
-                <Text style={{ color: "#b8b0b0", fontSize: 14, marginTop: 4 }}>
-                  {profile?.email?.trim() || "Not set"}
-                </Text>
+                {profile?.email?.trim() ? (
+                  <Text style={{ color: "#b8b0b0", fontSize: 14, marginTop: 4 }}>
+                    {profile.email.trim()}
+                  </Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -284,66 +330,193 @@ export default function ProfileScreen() {
         </>
       )}
 
-      {hasProfile ? (
-        <>
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
-            Account
-          </Text>
+      <View
+        style={{
+          backgroundColor: "#3a3535",
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: "#4a4545",
+          padding: 16,
+          gap: 12,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
+          Sync Across Devices
+        </Text>
 
+        {appMode === "authenticated" ? (
           <View
             style={{
-              backgroundColor: "#3a3535",
-              borderRadius: 20,
+              borderRadius: 16,
+              padding: 14,
+              backgroundColor: "#2e2a2a",
               borderWidth: 1,
               borderColor: "#4a4545",
-              overflow: "hidden",
+              gap: 8,
             }}
           >
-            {actionItems.map((item, index) => (
-              <Pressable
-                key={item.label}
-                onPress={() => {
-                  if (item.route) {
-                    router.push(item.route as "/profile/edit" | "/profile/goals" | "/profile/preferences");
-                    return;
-                  }
-
-                  Alert.alert("Sign Out", "Authentication will be added later.");
-                }}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 16,
-                  paddingVertical: 15,
-                  backgroundColor: pressed ? "#433d3d" : "#3a3535",
-                  borderBottomWidth: index === actionItems.length - 1 ? 0 : 1,
-                  borderBottomColor: "#4a4545",
-                })}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <Ionicons
-                    name={item.icon}
-                    size={18}
-                    color={item.label === "Sign Out" ? "#f87171" : "#fff"}
-                  />
-                  <Text
-                    style={{
-                      color: item.label === "Sign Out" ? "#fca5a5" : "#fff",
-                      fontSize: 15,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-
-                <Ionicons name="chevron-forward" size={18} color="#9f9797" />
-              </Pressable>
-            ))}
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              Connected with Cognito
+            </Text>
+            <Text style={{ color: "#b8b0b0", fontSize: 13, lineHeight: 20 }}>
+              Your authenticated account can use protected backend features and sync across devices.
+            </Text>
           </View>
-        </>
-      ) : null}
+        ) : (
+          <>
+            <Pressable
+              disabled={authBusy !== null}
+              onPress={() => {
+                void (async () => {
+                  try {
+                    setAuthBusy("signup");
+                    await signUp();
+                  } finally {
+                    setAuthBusy(null);
+                  }
+                })();
+              }}
+              style={({ pressed }) => ({
+                borderRadius: 16,
+                padding: 16,
+                backgroundColor: pressed ? "#5b5567" : "#6b5cff",
+                borderWidth: 1,
+                borderColor: "#8d84ff",
+                opacity: authBusy !== null ? 0.8 : 1,
+              })}
+            >
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                {authBusy === "signup" ? "Opening account setup..." : "Create Account"}
+              </Text>
+              <Text style={{ color: "#ebe8ff", fontSize: 13, lineHeight: 20, marginTop: 6 }}>
+                To sync across all devices, create an account with Cognito.
+              </Text>
+            </Pressable>
+
+            <Pressable
+              disabled={authBusy !== null}
+              onPress={() => {
+                void (async () => {
+                  try {
+                    setAuthBusy("signin");
+                    await signIn();
+                  } finally {
+                    setAuthBusy(null);
+                  }
+                })();
+              }}
+              style={({ pressed }) => ({
+                borderRadius: 16,
+                padding: 16,
+                backgroundColor: pressed ? "#433d3d" : "#2e2a2a",
+                borderWidth: 1,
+                borderColor: "#4a4545",
+                opacity: authBusy !== null ? 0.8 : 1,
+              })}
+            >
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                {authBusy === "signin" ? "Opening sign-in..." : "Sign In"}
+              </Text>
+              <Text style={{ color: "#b8b0b0", fontSize: 13, lineHeight: 20, marginTop: 6 }}>
+                Already have an account? Sign in.
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+
+      <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
+        {appMode === "authenticated" ? "Account" : "Profile"}
+      </Text>
+
+      <View
+        style={{
+          backgroundColor: "#3a3535",
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: "#4a4545",
+          overflow: "hidden",
+        }}
+      >
+        {actionItems.map((item, index) => (
+          <Pressable
+            key={item.label}
+            onPress={() => {
+              router.push(item.route as "/profile/edit" | "/profile/goals" | "/profile/preferences");
+            }}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              paddingVertical: 15,
+              backgroundColor: pressed ? "#433d3d" : "#3a3535",
+              borderBottomWidth: index === actionItems.length - 1 && appMode !== "authenticated" ? 0 : 1,
+              borderBottomColor: "#4a4545",
+            })}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons
+                name={item.icon}
+                size={18}
+                color="#fff"
+              />
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: "600",
+                }}
+              >
+                {item.label}
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color="#9f9797" />
+          </Pressable>
+        ))}
+
+        {appMode === "authenticated" ? (
+          <Pressable
+            onPress={() => {
+              void (async () => {
+                await signOut();
+                setAppModeState("local");
+                setProfile(await getProfile());
+              })();
+            }}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              paddingVertical: 15,
+              backgroundColor: pressed ? "#433d3d" : "#3a3535",
+              borderTopWidth: 1,
+              borderTopColor: "#4a4545",
+            })}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Ionicons
+                name="log-out-outline"
+                size={18}
+                color="#f87171"
+              />
+              <Text
+                style={{
+                  color: "#fca5a5",
+                  fontSize: 15,
+                  fontWeight: "600",
+                }}
+              >
+                Sign Out
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color="#9f9797" />
+          </Pressable>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }

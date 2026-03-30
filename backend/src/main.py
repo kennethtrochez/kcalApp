@@ -1,10 +1,16 @@
-from fastapi import FastAPI
+from typing import Any
+
+from fastapi import Depends, FastAPI, Header
 import os
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 import requests
 import re
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
+from pydantic import BaseModel, ConfigDict
+from src.aws.dynamodb import get_profile_item, put_profile_item
+from src.aws.cognito_auth import verify_bearer_token
 
 # Load USDA API KEY and check it loaded.
 load_dotenv()
@@ -26,6 +32,16 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Backend is running."}
+
+
+class ProfilePayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    displayName: str | None = None
+
+
+def get_current_claims(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    return verify_bearer_token(authorization or "")
 
 # Food search
 @app.get("/foods/search")
@@ -73,6 +89,52 @@ def get_usda_food(fdcId: int):
     info = extract_basic_info(data)
     macros = extract_macros(data)
     return info | macros
+
+
+@app.get("/me/profile")
+def get_my_profile(claims: dict[str, Any] = Depends(get_current_claims)):
+    user_id = claims["sub"]
+
+    try:
+        item = get_profile_item(user_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"DynamoDB read failed: {exc}")
+
+    if item:
+        return item
+
+    return {"userID": user_id}
+
+
+@app.put("/me/profile")
+def put_my_profile(
+    payload: ProfilePayload,
+    claims: dict[str, Any] = Depends(get_current_claims),
+):
+    user_id = claims["sub"]
+
+    profile_data = payload.model_dump(exclude_unset=True)
+    if payload.model_extra:
+        profile_data.update(payload.model_extra)
+
+    profile_data.pop("userID", None)
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        existing_item = get_profile_item(user_id) or {}
+        item = {
+            **existing_item,
+            **profile_data,
+            "userID": user_id,
+            "updatedAt": now,
+        }
+        if "createdAt" not in item:
+            item["createdAt"] = now
+
+        return put_profile_item(item)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"DynamoDB write failed: {exc}")
 
 # Grab food data
 def fetch_usda_food(fdcId: int):

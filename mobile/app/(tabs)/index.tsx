@@ -197,6 +197,7 @@ export default function SearchScreen() {
   const proteinGoal = profile?.proteinGoal;
   const carbsGoal = profile?.carbsGoal;
   const fatGoal = profile?.fatGoal;
+  const hasProfile = Boolean(profile?.profileCreatedAt);
 
   const calendarDates = useMemo(() => {
     const today = new Date();
@@ -391,6 +392,38 @@ export default function SearchScreen() {
     } finally {
       setSavingCustomEntry(false);
     }
+  }
+
+  function openGoalsScreen() {
+    router.push("/profile/goals");
+  }
+
+  function renderGoalStatus(
+    value: number | undefined,
+    formattedValue: string
+  ) {
+    if (value !== undefined) {
+      return (
+        <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
+          {formattedValue}
+        </Text>
+      );
+    }
+
+    return (
+      <Pressable onPress={openGoalsScreen}>
+        <Text
+          style={{
+            color: "#FDE047",
+            fontSize: 12,
+            marginTop: 2,
+            fontWeight: "700",
+          }}
+        >
+          goal not set
+        </Text>
+      </Pressable>
+    );
   }
 
   return (
@@ -953,7 +986,32 @@ export default function SearchScreen() {
             zIndex: 1,
             elevation: 1,
           }}
-        >
+          >
+            {!hasProfile ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 18,
+                  left: 8,
+                  right: 8,
+                  backgroundColor: "#3a3535",
+                  borderRadius: 16,
+                  padding: 14,
+                  borderWidth: 1,
+                  borderColor: "#4a4545",
+                  zIndex: 4,
+                  elevation: 4,
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                  Set up a profile for goal tracking
+                </Text>
+                <Text style={{ color: "#b8b0b0", fontSize: 13, lineHeight: 20, marginTop: 6 }}>
+                  Calorie and macro goals appear after you create a profile in the Profile tab.
+                </Text>
+              </View>
+            ) : null}
+
           <View
             style={{
               flex: 1.2,
@@ -1023,7 +1081,7 @@ export default function SearchScreen() {
               </View>
             </View>
 
-            <View style={{ marginLeft: 24 }}>
+            <View style={{ marginLeft: 24, marginTop: hasProfile ? 0 : 54 }}>
               <BodyFill
                 width={342}
                 height={664}
@@ -1058,9 +1116,7 @@ export default function SearchScreen() {
               <Text style={{ color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 4 }}>
                 {Math.round(totals.calories)}
               </Text>
-              <Text style={{ color: "#aaa", fontSize: 13, marginTop: 2 }}>
-                {calorieGoal !== undefined ? `of ${calorieGoal} kcal` : "Goal not set"}
-              </Text>
+              {renderGoalStatus(calorieGoal, `of ${calorieGoal} kcal`)}
             </View>
 
             <View
@@ -1076,9 +1132,7 @@ export default function SearchScreen() {
               <Text style={{ color: "#c4b5fd", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.protein)}g
               </Text>
-              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
-                {proteinGoal !== undefined ? `of ${proteinGoal}g` : "Goal not set"}
-              </Text>
+              {renderGoalStatus(proteinGoal, `of ${proteinGoal}g`)}
             </View>
 
             <View
@@ -1094,9 +1148,7 @@ export default function SearchScreen() {
               <Text style={{ color: "#fcd34d", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.carbs)}g
               </Text>
-              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
-                {carbsGoal !== undefined ? `of ${carbsGoal}g` : "Goal not set"}
-              </Text>
+              {renderGoalStatus(carbsGoal, `of ${carbsGoal}g`)}
             </View>
 
             <View
@@ -1112,9 +1164,7 @@ export default function SearchScreen() {
               <Text style={{ color: "#16A34A", fontSize: 20, marginTop: 4 }}>
                 {Math.round(totals.fat)}g
               </Text>
-              <Text style={{ color: "#aaa", fontSize: 12, marginTop: 2 }}>
-                {fatGoal !== undefined ? `of ${fatGoal}g` : "Goal not set"}
-              </Text>
+              {renderGoalStatus(fatGoal, `of ${fatGoal}g`)}
             </View>
           </View>
         </View>

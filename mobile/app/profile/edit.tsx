@@ -34,10 +34,18 @@ export default function EditProfileScreen() {
   });
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
   const [weightLb, setWeightLb] = useState("");
   const [heightFeet, setHeightFeet] = useState<number | null>(null);
   const [heightInches, setHeightInches] = useState<number | null>(null);
+
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/profile");
+  }
 
   useEffect(() => {
     (async () => {
@@ -46,7 +54,6 @@ export default function EditProfileScreen() {
 
       setAvatarUri(profile.avatarUri);
       setDisplayName(profile.displayName ?? "");
-      setEmail(profile.email ?? "");
       setWeightLb(profile.weightLb !== undefined ? String(profile.weightLb) : "");
       setHeightFeet(profile.heightFeet ?? null);
       setHeightInches(profile.heightInches ?? null);
@@ -86,7 +93,7 @@ export default function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={handleBack}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </Pressable>
           <Text
@@ -177,30 +184,6 @@ export default function EditProfileScreen() {
             <TextInput
               value={displayName}
               onChangeText={setDisplayName}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-              placeholderTextColor="#888"
-              style={{
-                borderWidth: 1,
-                borderColor: "#4a4545",
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                borderRadius: 14,
-                color: "#fff",
-                backgroundColor: "#2e2a2a",
-              }}
-            />
-          </View>
-
-          <View>
-            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700", marginBottom: 6 }}>
-              Email
-            </Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
               returnKeyType="done"
               onSubmitEditing={Keyboard.dismiss}
               placeholderTextColor="#888"
@@ -337,7 +320,7 @@ export default function EditProfileScreen() {
 
         <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={({ pressed }) => ({
               paddingHorizontal: 16,
               paddingVertical: 12,
@@ -356,12 +339,11 @@ export default function EditProfileScreen() {
               await updateProfile({
                 avatarUri,
                 displayName: displayName.trim() || undefined,
-                email: email.trim() || undefined,
                 weightLb: parseOptionalNumber(weightLb),
                 heightFeet: heightFeet ?? undefined,
                 heightInches: heightInches ?? undefined,
               });
-              router.back();
+              handleBack();
             }}
             style={({ pressed }) => ({
               paddingHorizontal: 16,

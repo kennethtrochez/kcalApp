@@ -32,7 +32,7 @@ export default function PreferencesScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={handleBack}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text
@@ -148,7 +148,7 @@ export default function PreferencesScreen() {
 
       <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={({ pressed }) => ({
             paddingHorizontal: 16,
             paddingVertical: 12,
@@ -166,7 +166,7 @@ export default function PreferencesScreen() {
             await updateProfile({
               remindersEnabled,
             });
-            router.back();
+            handleBack();
           }}
           style={({ pressed }) => ({
             paddingHorizontal: 16,
@@ -183,3 +183,11 @@ export default function PreferencesScreen() {
     </ScrollView>
   );
 }
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/profile");
+  }

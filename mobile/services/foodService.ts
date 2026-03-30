@@ -1,4 +1,4 @@
-import { apiGet } from "../lib/api";
+import { apiGet } from "./api";
 import {Food, mapBackendFoodToAppFood} from "../data/food";
 
 export type FoodPreview = {

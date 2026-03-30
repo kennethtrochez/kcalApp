@@ -9,3 +9,5 @@ env/
 *.pyc
 
 .env
+.env.*
+!.env.example

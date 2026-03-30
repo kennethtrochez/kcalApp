@@ -212,6 +212,7 @@ export default function CalendarScreen() {
   const carbsGoal = profile?.carbsGoal;
   const fatGoal = profile?.fatGoal;
   const waterGoal = profile?.waterGoalOz;
+  const hasProfile = Boolean(profile?.profileCreatedAt);
   const monthLabel = visibleMonth.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
@@ -306,6 +307,25 @@ export default function CalendarScreen() {
           gap: 12,
         }}
       >
+        {!hasProfile ? (
+          <View
+            style={{
+              borderRadius: 16,
+              padding: 14,
+              backgroundColor: "#2e2a2a",
+              borderWidth: 1,
+              borderColor: "#4a4545",
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              Set up a profile for goals
+            </Text>
+            <Text style={{ color: "#b8b0b0", fontSize: 13, lineHeight: 20, marginTop: 6 }}>
+              Calorie, macro, and water goals are available after you create a profile in the Profile tab.
+            </Text>
+          </View>
+        ) : null}
+
         <View
           style={{
             flexDirection: "row",

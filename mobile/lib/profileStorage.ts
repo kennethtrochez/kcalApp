@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiFetch } from "../services/api";
+import { getAppMode, setAppMode } from "../services/appMode";
 
 const PROFILE_KEY = "profile:data";
 
@@ -18,7 +20,7 @@ export type UserProfile = {
   profileCreatedAt?: string;
 };
 
-function normalizeProfile(profile: Record<string, unknown>): UserProfile {
+export function normalizeProfile(profile: Record<string, unknown>): UserProfile {
   const normalized: UserProfile = {
     avatarUri: typeof profile.avatarUri === "string" ? profile.avatarUri : undefined,
     displayName: typeof profile.displayName === "string" ? profile.displayName : undefined,
@@ -77,6 +79,28 @@ export async function updateProfile(updates: Partial<UserProfile>): Promise<User
     next.profileCreatedAt = new Date().toISOString();
   }
 
-  await saveProfile(next);
-  return next;
+  const appMode = await getAppMode();
+
+  if (appMode !== "authenticated") {
+    await setAppMode("local");
+    await saveProfile(next);
+    return next;
+  }
+
+  const saved = await apiFetch("/me/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(next),
+  });
+
+  const normalizedSaved = normalizeProfile(saved as Record<string, unknown>);
+  const resolvedProfile: UserProfile = {
+    ...next,
+    ...normalizedSaved,
+  };
+
+  await saveProfile(resolvedProfile);
+  return resolvedProfile;
 }
