@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable, Image } from "react-native";
+import { View, Text, FlatList, Pressable, Image, Modal, TextInput, Alert, ScrollView } from "react-native";
 import { LogEntry } from "../../data/food";
-import { clearDayLog, getDayLog, getTodayKey } from "../../lib/storage";
+import { clearDayLog, getDayLog, getTodayKey, removeDayLogEntry, updateDayLogEntry } from "../../lib/storage";
 import { getProfile, UserProfile } from "../../lib/profileStorage";
 import { totalMacrosForEntries } from "../../utils/macros";
 import { router, useFocusEffect } from "expo-router";
@@ -18,6 +18,14 @@ function formatLoggedTime(isoString: string) {
 export default function LogScreen() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editingEntry, setEditingEntry] = useState<LogEntry | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editServingSize, setEditServingSize] = useState("");
+  const [editServings, setEditServings] = useState("1");
+  const [editCalories, setEditCalories] = useState("");
+  const [editProtein, setEditProtein] = useState("");
+  const [editCarbs, setEditCarbs] = useState("");
+  const [editFat, setEditFat] = useState("");
   const dayKey = getTodayKey();
 
   const [fontsLoaded] = useFonts({
@@ -40,6 +48,90 @@ export default function LogScreen() {
   );
 
   const totals = totalMacrosForEntries(entries);
+
+  function openEditModal(entry: LogEntry) {
+    setEditingEntry(entry);
+    setEditName(entry.food.name ?? "");
+    setEditServingSize(entry.food.servingSize ?? "");
+    setEditServings(String(entry.servings));
+    setEditCalories(String(entry.food.calories));
+    setEditProtein(String(entry.food.protein));
+    setEditCarbs(String(entry.food.carbs));
+    setEditFat(String(entry.food.fat));
+  }
+
+  function closeEditModal() {
+    setEditingEntry(null);
+    setEditName("");
+    setEditServingSize("");
+    setEditServings("1");
+    setEditCalories("");
+    setEditProtein("");
+    setEditCarbs("");
+    setEditFat("");
+  }
+
+  function parseNonNegativeNumber(value: string): number | null {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return 0;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  async function handleRemoveEntry(entryId: string) {
+    const next = await removeDayLogEntry(dayKey, entryId);
+    setEntries(next);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingEntry) {
+      return;
+    }
+
+    const trimmedName = editName.trim();
+    const trimmedServingSize = editServingSize.trim();
+    const servingsValue = Number(editServings.trim());
+    const caloriesValue = parseNonNegativeNumber(editCalories);
+    const proteinValue = parseNonNegativeNumber(editProtein);
+    const carbsValue = parseNonNegativeNumber(editCarbs);
+    const fatValue = parseNonNegativeNumber(editFat);
+
+    if (!trimmedName) {
+      Alert.alert("Food Name Required", "Food name is required.");
+      return;
+    }
+
+    if (!Number.isFinite(servingsValue) || servingsValue <= 0) {
+      Alert.alert("Invalid Servings", "Servings must be a number greater than 0.");
+      return;
+    }
+
+    if ([caloriesValue, proteinValue, carbsValue, fatValue].some((value) => value === null)) {
+      Alert.alert("Invalid Nutrition", "Calories and macros must be valid numbers.");
+      return;
+    }
+
+    const next = await updateDayLogEntry(dayKey, editingEntry.id, (entry) => ({
+      ...entry,
+      servings: servingsValue,
+      food: {
+        ...entry.food,
+        name: trimmedName,
+        servingSize: trimmedServingSize || "1 serving",
+        calories: caloriesValue ?? 0,
+        protein: proteinValue ?? 0,
+        carbs: carbsValue ?? 0,
+        fat: fatValue ?? 0,
+      },
+    }));
+
+    setEntries(next);
+    closeEditModal();
+  }
 
   if (!fontsLoaded) {
     return null;
@@ -238,6 +330,147 @@ export default function LogScreen() {
         </Text>
       </Pressable>
 
+      <Modal
+        visible={Boolean(editingEntry)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeEditModal}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            justifyContent: "center",
+            paddingHorizontal: 16,
+          }}
+        >
+          <View
+            style={{
+              maxHeight: "88%",
+              backgroundColor: "#3a3535",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: "#4a4545",
+              padding: 16,
+            }}
+          >
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>
+                Edit Logged Food
+              </Text>
+              <Text style={{ color: "#b8b0b0", fontSize: 13, lineHeight: 20, marginTop: 6 }}>
+                Changes apply only to this logged entry.
+              </Text>
+
+              <View style={{ gap: 12, marginTop: 16 }}>
+                {[
+                  { label: "Food Name", value: editName, setter: setEditName, placeholder: "Food name" },
+                  {
+                    label: "Serving Description",
+                    value: editServingSize,
+                    setter: setEditServingSize,
+                    placeholder: "ex. 1 cup, 100 g",
+                  },
+                  {
+                    label: "Servings",
+                    value: editServings,
+                    setter: setEditServings,
+                    placeholder: "1",
+                    keyboardType: "decimal-pad" as const,
+                  },
+                  {
+                    label: "Calories",
+                    value: editCalories,
+                    setter: setEditCalories,
+                    placeholder: "0",
+                    keyboardType: "decimal-pad" as const,
+                  },
+                  {
+                    label: "Protein",
+                    value: editProtein,
+                    setter: setEditProtein,
+                    placeholder: "0",
+                    keyboardType: "decimal-pad" as const,
+                  },
+                  {
+                    label: "Carbs",
+                    value: editCarbs,
+                    setter: setEditCarbs,
+                    placeholder: "0",
+                    keyboardType: "decimal-pad" as const,
+                  },
+                  {
+                    label: "Fat",
+                    value: editFat,
+                    setter: setEditFat,
+                    placeholder: "0",
+                    keyboardType: "decimal-pad" as const,
+                  },
+                ].map((field) => (
+                  <View key={field.label}>
+                    <Text
+                      style={{ color: "#fff", fontSize: 13, fontWeight: "700", marginBottom: 6 }}
+                    >
+                      {field.label}
+                    </Text>
+                    <TextInput
+                      value={field.value}
+                      onChangeText={field.setter}
+                      placeholder={field.placeholder}
+                      placeholderTextColor="#888"
+                      keyboardType={field.keyboardType}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: "#4a4545",
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        borderRadius: 14,
+                        color: "#fff",
+                        backgroundColor: "#2e2a2a",
+                      }}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
+                <Pressable
+                  onPress={closeEditModal}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 13,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    backgroundColor: pressed ? "#4a4545" : "#2e2a2a",
+                    borderWidth: 1,
+                    borderColor: "#4a4545",
+                  })}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    void handleSaveEdit();
+                  }}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 13,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    backgroundColor: pressed ? "#5b5567" : "#6b5cff",
+                    borderWidth: 1,
+                    borderColor: "#8d84ff",
+                  })}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Save Changes</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <FlatList
         data={entries}
         keyExtractor={(e) => e.id}
@@ -310,15 +543,61 @@ export default function LogScreen() {
               </Text>
             </View>
 
-            <Text
+            <View
               style={{
-                color: "#d1d1d1",
                 marginTop: 10,
-                fontSize: 13,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
               }}
             >
-              Servings: {item.servings} | {Math.round(item.food.calories)} cal per serving
-            </Text>
+              <Text
+                style={{
+                  color: "#d1d1d1",
+                  fontSize: 13,
+                  flex: 1,
+                }}
+              >
+                Servings: {item.servings} | {Math.round(item.food.calories)} cal per serving
+              </Text>
+
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Pressable
+                  onPress={() => openEditModal(item)}
+                  style={({ pressed }) => ({
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: pressed ? "#4a4545" : "#2e2a2a",
+                    borderWidth: 1,
+                    borderColor: "#4a4545",
+                  })}
+                >
+                  <Ionicons name="create-outline" size={16} color="#fff" />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    void handleRemoveEntry(item.id);
+                  }}
+                  style={({ pressed }) => ({
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: pressed ? "#4a4545" : "#2e2a2a",
+                    borderWidth: 1,
+                    borderColor: "#4a4545",
+                  })}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#fca5a5" />
+                </Pressable>
+              </View>
+            </View>
           </View>
         )}
         ListEmptyComponent={

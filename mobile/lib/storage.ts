@@ -30,6 +30,24 @@ export async function addToDayLog(dayKey: string, entry: LogEntry): Promise<LogE
     return next;
 }
 
+export async function updateDayLogEntry(
+    dayKey: string,
+    entryId: string,
+    updater: (entry: LogEntry) => LogEntry
+): Promise<LogEntry[]> {
+    const current = await getDayLog(dayKey);
+    const next = current.map((entry) => (entry.id === entryId ? updater(entry) : entry));
+    await saveDayLog(dayKey, next);
+    return next;
+}
+
+export async function removeDayLogEntry(dayKey: string, entryId: string): Promise<LogEntry[]> {
+    const current = await getDayLog(dayKey);
+    const next = current.filter((entry) => entry.id !== entryId);
+    await saveDayLog(dayKey, next);
+    return next;
+}
+
 export async function clearDayLog(dayKey: string): Promise<void>{
     await AsyncStorage.removeItem(DAY_LOG_KEY(dayKey));
 }
