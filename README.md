@@ -1,4 +1,4 @@
-# **kCalApp**
+# kCalApp
 
 kCalApp is a mobile nutrition tracking app designed to make daily calorie and macro tracking simple, visual, and easy to maintain. The app emphasizes a clean interface and fast logging, allowing users to quickly record meals while still gaining meaningful insight into their daily nutrition.
 
@@ -6,9 +6,7 @@ Built as a full-stack mobile application, kCalApp uses a React Native frontend a
 
 ---
 
-## **Overview**
-
-kCalApp is a mobile nutrition tracking app focused on making calorie and macro tracking fast, intuitive, and sustainable. It emphasizes a clean interface and streamlined interactions, allowing users to log food quickly while maintaining a clear understanding of their daily nutrition.
+## Overview
 
 Core focus areas include:
 
