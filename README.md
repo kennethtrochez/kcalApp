@@ -1,4 +1,4 @@
-# **kCalApp (In Progress)**
+# **kCalApp**
 
 kCalApp is a mobile nutrition tracking app built to make daily calorie and macro tracking simple, visual, and actually usable. Instead of overwhelming the user with data, the app focuses on a clean interface and quick logging, while still giving meaningful insights into daily nutrition.
 
@@ -16,6 +16,39 @@ The goal of kCalApp is to reduce friction in tracking food intake. Most nutritio
 - Simple navigation between days  
 
 ---
+## 📱 Screenshots
+
+### Home Dashboard
+![Home](docs/screenshots/HomeTab.png)
+
+### Food Log
+![Food Log](docs/screenshots/FoodLogTab.png)
+
+### Calendar Navigation
+
+<p align="center">
+  <img src="docs/screenshots/CalendarTab1.png" width="250"/>
+  <img src="docs/screenshots/CalendarTab2.png" width="250"/>
+</p>
+
+### USDA Food Search
+![Search](docs/screenshots/USDASearchHome.png)
+
+### Profile & Goals
+
+<p align="center">
+  <img src="docs/screenshots/ProfileTab1.png" width="250"/>
+  <img src="docs/screenshots/ProfileTab2.png" width="250"/>
+  <img src="docs/screenshots/GoalsScreen.png" width="250"/>
+</p>
+
+### Nutrition Scanner
+
+<p align="center">
+  <img src="docs/screenshots/ScannerCamera.png" width="250"/>
+  <img src="docs/screenshots/ScannerReview1.png" width="250"/>
+  <img src="docs/screenshots/ScannerReview2.png" width="250"/>
+</p>
 
 ## **Tech Stack**
 
@@ -38,6 +71,11 @@ The goal of kCalApp is to reduce friction in tracking food intake. Most nutritio
 
 ### **Food Search and Logging**
 Users can search for foods using real USDA data. Results are displayed in a dropdown, and selecting an item logs it instantly into the current day.
+
+---
+
+### **Nutrition Label Scanner**
+Users can scan a nutrition label using the camera or upload a photo from their gallery. The app extracts nutritional values and allows quick logging with editable fields.
 
 ---
 
