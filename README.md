@@ -2,7 +2,7 @@
 
 kCalApp is a mobile nutrition tracking app built to make daily calorie and macro tracking simple, visual, and actually usable. Instead of overwhelming the user with data, the app focuses on a clean interface and quick logging, while still giving meaningful insights into daily nutrition.
 
-This project is being developed as a **full-stack application**, with a **React Native frontend** and a **FastAPI backend** that integrates real-world nutrition data.
+kCalApp is a **full-stack mobile application**, with a **React Native frontend** and a **FastAPI backend** that integrates real-world nutrition data.
 
 ---
 
@@ -73,65 +73,65 @@ The goal of kCalApp is to reduce friction in tracking food intake. Most nutritio
 
 ---
 
-## **Features (Current)**
+## **Features**
 
-### **Food Search and Logging**
-Users can search for foods using real USDA data. Results are displayed in a dropdown, and selecting an item logs it instantly into the current day.
+### **Nutrition Label Scanner**
+Scan a nutrition label using the camera or upload a photo from your gallery. The app extracts calories and macros automatically, with editable fields for quick and flexible logging.
 
 ---
 
-### **Nutrition Label Scanner**
-Users can scan a nutrition label using the camera or upload a photo from their gallery. The app extracts nutritional values and allows quick logging with editable fields.
+### **Food Search and Logging**
+Search for foods using real USDA data. Results appear instantly, and selecting an item logs it directly into the current day.
+
+---
+
+### **Editable & Removable Food Logs**
+Each logged entry can be edited or removed at any time. Users can adjust nutrition values, servings, or names without affecting the original data source.
 
 ---
 
 ### **Nutrition Tracking**
-Each logged item contributes to daily totals:
-
+Track daily intake of:
 - Calories  
 - Protein  
 - Carbohydrates  
 - Fat  
 
-These totals are updated in real time as new foods are added.
+Totals update in real time as food is added or modified.
 
 ---
 
 ### **Visual Macro Breakdown**
-The app includes a custom visualization that fills a body silhouette based on calorie intake. The fill is segmented by macros, giving a quick visual sense of where calories are coming from.
+A custom body-based visualization fills dynamically based on calorie intake, segmented by macros to provide an intuitive overview of nutritional balance.
 
 ---
 
-### **Daily Food Log**
-Food entries are stored locally and organized by day. Each entry includes:
-
-- Food name  
-- Macro values  
-- Timestamp  
-
----
-
-### **Calendar Navigation**
-A horizontal calendar allows users to:
-
-- Scroll through past and future dates  
-- View logs from previous days  
+### **Daily Food Log & Calendar**
+Food entries are stored locally and organized by day. A horizontal calendar allows users to:
+- Navigate between dates  
+- View past logs  
 - Track consistency over time  
 
 ---
 
-### **Manual Input**
-Users can manually log meals when a food is not found in the API.
+### **Dynamic Goal Feedback**
+The app responds to user progress visually. For example, calorie values turn red when daily goals are exceeded.
+
+---
+
+### **Manual Food Entry**
+Users can manually log meals when a food is not available in the database.
 
 ---
 
 ### **Water Tracking**
-Basic water intake tracking is included to support overall daily health tracking.
+Track daily water intake alongside nutrition for a more complete view of health.
 
 ---
 
 ## **Data Flow (How It Works)**
 
+### Food Search Flow
 1. User searches for a food  
 2. Frontend sends request to FastAPI backend  
 3. Backend queries USDA API and formats the response  
@@ -142,15 +142,28 @@ Basic water intake tracking is included to support overall daily health tracking
 
 ---
 
-## **Current Status**
+### Nutrition Scanner Flow
+1. User captures a nutrition label or uploads an image  
+2. OCR extracts raw text from the label  
+3. App parses calories and macro values  
+4. User reviews and edits the extracted data  
+5. A new log entry is created and stored locally  
+6. UI updates totals immediately  
 
-This project is currently **in active development (~70% complete)**.
+---
 
-Current focus areas:
-- UI polish (food log layout, spacing, styling)  
-- Improving macro visualization accuracy  
-- Expanding the user profile system  
-- Authentication and cloud sync
+### Profile & Goals Flow
+1. User sets calorie and macro goals  
+2. Goals are stored locally  
+3. Home screen compares consumed values vs goals  
+4. UI updates dynamically (e.g., calories turn red when exceeded)  
+
+---
+
+### Local vs Cloud Data
+- By default, all data is stored locally using AsyncStorage  
+- Users can optionally sign in with AWS Cognito  
+- Cloud sync is planned for future integration with DynamoDB  
   
 ---
 
