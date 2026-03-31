@@ -19,35 +19,41 @@ The goal of kCalApp is to reduce friction in tracking food intake. Most nutritio
 ## 📱 Screenshots
 
 ### Home Dashboard
-![Home](docs/screenshots/HomeTab.png)
+<p align="center">
+  <img src="docs/screenshots/HomeTab.png" width="250"/>
+</p>
 
 ### Food Log
-![Food Log](docs/screenshots/FoodLogTab.png)
+<p align="center">
+  <img src="docs/screenshots/FoodLogTab.png" width="250"/>
+</p>
 
 ### Calendar Navigation
 
 <p align="center">
-  <img src="docs/screenshots/CalendarTab1.png" width="250"/>
-  <img src="docs/screenshots/CalendarTab2.png" width="250"/>
+  <img src="docs/screenshots/CalendarTab1.png" width="180"/>
+  <img src="docs/screenshots/CalendarTab2.png" width="180"/>
 </p>
 
 ### USDA Food Search
-![Search](docs/screenshots/USDASearchHome.png)
+<p align="center">
+  <img src="docs/screenshots/USDASearchHome.png" width="250"/>
+</p>
 
 ### Profile & Goals
 
 <p align="center">
-  <img src="docs/screenshots/ProfileTab1.png" width="250"/>
-  <img src="docs/screenshots/ProfileTab2.png" width="250"/>
-  <img src="docs/screenshots/GoalsScreen.png" width="250"/>
+  <img src="docs/screenshots/ProfileTab1.png" width="180"/>
+  <img src="docs/screenshots/ProfileTab2.png" width="180"/>
+  <img src="docs/screenshots/GoalsScreen.png" width="180"/>
 </p>
 
 ### Nutrition Scanner
 
 <p align="center">
-  <img src="docs/screenshots/ScannerCamera.png" width="250"/>
-  <img src="docs/screenshots/ScannerReview1.png" width="250"/>
-  <img src="docs/screenshots/ScannerReview2.png" width="250"/>
+  <img src="docs/screenshots/ScannerCamera.png" width="180"/>
+  <img src="docs/screenshots/ScannerReview1.png" width="180"/>
+  <img src="docs/screenshots/ScannerReview2.png" width="180"/>
 </p>
 
 ## **Tech Stack**
