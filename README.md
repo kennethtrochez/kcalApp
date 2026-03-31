@@ -23,6 +23,11 @@ Core focus areas include:
   <img src="docs/screenshots/HomeTab.png" width="300"/>
 </p>
 
+### USDA Food Search
+<p align="center">
+  <img src="docs/screenshots/USDASearchHome.png" width="300"/>
+</p>
+
 ### Food Log
 <p align="center">
   <img src="docs/screenshots/FoodLogTab.png" width="300"/>
@@ -33,11 +38,6 @@ Core focus areas include:
 <p align="center">
   <img src="docs/screenshots/CalendarTab1.png" width="300"/>
   <img src="docs/screenshots/CalendarTab2.png" width="300"/>
-</p>
-
-### USDA Food Search
-<p align="center">
-  <img src="docs/screenshots/USDASearchHome.png" width="300"/>
 </p>
 
 ### Profile & Goals
